@@ -1,0 +1,147 @@
+
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'org.junit.platform:junit-platform-gradle-plugin:1.1.0'
+    }
+}
+
+/*  commented out unless you use java 9 and above
+plugins {
+    id 'org.beryx.jlink' version '2.10.1'
+}
+*/
+
+apply plugin: 'application'
+apply plugin: 'java'
+apply plugin: 'eclipse'
+
+mainClassName = "Image2C.views.ImageApp"
+applicationName = "GUIslice_Image2C"
+archivesBaseName = "guislice_image2c"
+version = '1.03' 
+
+processResources { 
+     from("src/main/java/") { 
+         include 'resources/**' 
+     } 
+}
+
+jar {
+  manifest {
+    attributes("Main-Class": "Image2C.views.ImageApp",
+    "Implementation-Title": "GUIslice ImageApp")
+  }
+  from {
+      configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
+  }
+}
+
+/* commented out unless you use java 9 and above
+jlink {
+    options = ['--strip-debug', '--compress', '2', '--no-header-files', '--no-man-pages']
+    launcher{
+        name = 'image2c'
+    }
+}
+*/
+
+task customFatJar(type: Jar) {
+    manifest {
+        attributes ('Main-Class': 'Image2C.views.ImageApp',
+          "Implementation-Title": "GUIslice ImageApp",
+          "Implementation-Version": version)
+    }
+    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
+    with jar
+}
+
+task createWindowsDir(type: Copy) {
+  dependsOn customFatJar
+  doFirst {
+  	mkdir "${buildDir}/tmp/windows/Image2C"
+  }
+  description = "create temp folder for windows distribution"
+    from "${projectDir}/README.md"
+    into "${buildDir}/tmp/windows/Image2C"
+    from "${projectDir}/scripts/image2c.bat"
+    into "${buildDir}/tmp/windows/Image2C"
+    from "${buildDir}/libs/guislice_image2c-"+version+".jar"
+    into "${buildDir}/tmp/windows/Image2C"
+}
+
+task createLinuxDir(type: Copy) {
+  dependsOn customFatJar
+  doFirst {
+  	mkdir "${buildDir}/tmp/linux/Image2C"
+  }
+  description = "create temp folder for linux distribution"
+    from "${projectDir}/README.md"
+    into "${buildDir}/tmp/linux/Image2C"
+    from "${projectDir}/scripts/image2c.sh"
+    into "${buildDir}/tmp/linux/Image2C"
+    from "${buildDir}/libs/guislice_image2c-"+version+".jar"
+    into "${buildDir}/tmp/linux/Image2C"
+}
+
+task createMacOSDir(type: Copy) {
+  dependsOn customFatJar
+  doFirst {
+  	mkdir "${buildDir}/tmp/MacOS/Image2C"
+  }
+  description = "create temp folder for linux distribution"
+    from "${projectDir}/README.md"
+    into "${buildDir}/tmp/MacOS/Image2C"
+    from "${buildDir}/libs/guislice_image2c-"+version+".jar"
+    into "${buildDir}/tmp/MacOS/Image2C"
+}
+
+task winZip(type: Zip) {
+  dependsOn createWindowsDir
+  group = "distribution"
+  description = "windows package distribution"
+  from "${buildDir}/tmp/windows"
+  archiveName = "image2c-" + "win-" + version + ".zip"
+  destinationDir = file("${buildDir}/disp")
+}
+
+task linuxTar(type: Tar) {
+  dependsOn createLinuxDir
+  description = "create linux distribution from linux temp folder"
+  group = "distribution"
+  description = "linux package distribution"
+  from ("${buildDir}/tmp/linux") {
+   exclude ("**/*.sh") 
+   fileMode 0644
+  }
+  from ("${buildDir}/tmp/linux") {
+   include ("**/*.sh")
+   fileMode 0755
+  }
+  baseName = "image2c-" + "linux"
+  destinationDir = file("${buildDir}/disp")
+  extension = "tar.gz"
+  compression = Compression.GZIP  
+}
+
+task macZip(type: Zip) {
+  dependsOn createMacOSDir
+  group = "distribution"
+  description = "MacOS package distribution"
+  from "${buildDir}/tmp/MacOS"
+  archiveName = "image2c-" + "osx-" + version + ".zip"
+  destinationDir = file("${buildDir}/disp")
+}
+
+task packageAll() {
+  dependsOn winZip, linuxTar, macZip
+  group = "distribution"
+  description = "package all distributions"
+}
+
+dependencies {
+  compile fileTree(include: ['*.jar'], dir: 'libs')
+} 
+
