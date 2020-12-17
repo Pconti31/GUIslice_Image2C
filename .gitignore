@@ -1,14 +1,45 @@
-.gradle
-/build/
+# Object files
+*.o
+*.ko
+*.obj
+*.elf
 
-# Ignore Gradle GUI config
-gradle-app.setting
+# Precompiled Headers
+*.gch
+*.pch
 
-# Avoid ignoring Gradle wrapper jar file (.jar files are usually ignored)
-!gradle-wrapper.jar
+# Libraries
+*.lib
+*.a
+*.la
+*.lo
 
-# Cache of project
-.gradletasknamecache
+# Shared objects (inc. Windows DLLs)
+*.dll
+*.so
+*.so.*
+*.dylib
 
-# # Work around https://youtrack.jetbrains.com/issue/IDEA-116898
-# gradle/wrapper/gradle-wrapper.properties
+# Executables
+*.exe
+*.out
+*.app
+*.i*86
+*.x86_64
+*.hex
+
+# Debug files
+*.dSYM/
+*.su
+
+# NetBeans files
+nbproject/
+build/
+nbbuild/
+dist/
+nbdist/
+.nb-gradle/
+/Makefile
+
+# Builder files
+builder/.gradle
