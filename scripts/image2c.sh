@@ -1,2 +1,2 @@
 #!/bin/sh
-java -jar guislice_image2c-1.03.jar $@&
+java -jar guislice_image2c-1.04.jar $@&
