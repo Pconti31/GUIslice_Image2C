@@ -102,7 +102,7 @@ public class ImageApp implements ActionListener {
   public static final String PROGRAM_TITLE = "GUIslice Image2C";
   
   /** The Constant VERSION is our application version number. */
-  public static final String VERSION = "1.03";
+  public static final String VERSION = "1.04";
 
   /** The Constant VERSION_NO is for save and restore of user preferences. */
   public static final String VERSION_NO = "-1";
@@ -967,15 +967,6 @@ public class ImageApp implements ActionListener {
         
       case "export":
         try {
-          if (cbTransparent.isSelected()) {
-            int result = JOptionPane.showConfirmDialog(null,"GUIslice currently does not support\n" +
-            " C Array images with transparent pixels", "WARNING",
-                JOptionPane.YES_NO_OPTION,
-                JOptionPane.QUESTION_MESSAGE);
-             if (result == JOptionPane.NO_OPTION){
-                return;
-             }
-          }
           ((JFormattedTextField) txtOutputFile).commitEdit();
           sOutputName = txtOutputFile.getText();
           ((JFormattedTextField) txtCArray).commitEdit();
