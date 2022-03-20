@@ -2,7 +2,7 @@
  *
  * The MIT License
  *
- * Copyright 2020 Paul Conti
+ * Copyright 2020-2022 Paul Conti
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -47,7 +47,7 @@ import java.nio.ShortBuffer;
 public class CArrayOutputStream {
   
   /** The Constant MAXBYTES. */
-  private final static int MAXSHORTS = 16;
+  private final static int MAXITEMS = 16;
   
   /** The fw. */
   private FileWriter  fw;
@@ -93,9 +93,44 @@ public class CArrayOutputStream {
   public void streamArray(int[] data) {
     for(int i=0; i<data.length; i++)
     {
-      writeShort(data[i]);
+      writeShort(data[i], (i+1==data.length));
     }
     flush();
+  }
+
+  /**
+   * Stream array.
+   *
+   * @param data
+   *          the data
+   */
+  public void streamArray(byte[] data) {
+    int x;
+    for(x=0; x<data.length; x++)
+    {
+      writeByte(data[x], (x+1==data.length));
+    }
+    flush();
+  }
+
+  /**
+   * Stream byte.
+   *
+   * @param b
+   *          the b
+   */
+  private void writeByte(byte b, boolean bLast) {
+    if (bLast) {
+      pw.printf("0x%02X  ",b);
+    } else {
+      pw.printf("0x%02X, ",b);
+    }
+    lineLen++;
+    pos++;
+    if (lineLen >= MAXITEMS) {
+      pw.printf("    // 0x%04X (%d) pixels\n",pos,pos);
+      lineLen = 0;
+    }
   }
 
   /**
@@ -114,15 +149,19 @@ public class CArrayOutputStream {
    * @param v
    *          the v
    */
-  public void writeShort(int data) {
+  public void writeShort(int data, boolean bLast) {
     short v = new Integer(data).shortValue();
     if (!bLittleEndian) {
       v = convertShortBigEndian(v);
     }
-    pw.printf("0x%04X, ",v);
+    if (bLast) {
+      pw.printf("0x%04X  ",v);
+    } else {
+      pw.printf("0x%04X, ",v);
+    }
     lineLen++;
     pos++;
-    if (lineLen >= MAXSHORTS) {
+    if (lineLen >= MAXITEMS) {
       pw.printf("    // 0x%04X (%d) pixels\n",pos,pos);
       lineLen = 0;
     }
@@ -146,6 +185,7 @@ public class CArrayOutputStream {
       buffer.flip();
       return buffer.array();
   }
+  
   /**
    * Flush.
    *
@@ -154,7 +194,7 @@ public class CArrayOutputStream {
    */
   public void flush() {
     if (lineLen != 0) {
-      int leftOver = MAXSHORTS - lineLen;
+      int leftOver = MAXITEMS - lineLen;
       for (int i=0; i<leftOver; i++)
         pw.printf("        ");
       pw.printf("    // 0x%04X (%d) pixels\n",pos,pos);

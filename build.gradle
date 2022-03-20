@@ -21,7 +21,7 @@ apply plugin: 'eclipse'
 mainClassName = "Image2C.views.ImageApp"
 applicationName = "GUIslice_Image2C"
 archivesBaseName = "guislice_image2c"
-version = '1.04' 
+version = '2.00' 
 
 processResources { 
      from("src/main/java/") { 

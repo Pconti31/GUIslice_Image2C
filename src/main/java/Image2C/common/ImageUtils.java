@@ -2,7 +2,7 @@
  *
  * The MIT License
  *
- * Copyright 2020 Paul Conti
+ * Copyright 2020-2022 Paul Conti
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,7 +27,10 @@ package Image2C.common;
 
 import java.awt.Color;
 import java.awt.Graphics2D;
+import java.awt.color.ColorSpace;
 import java.awt.image.BufferedImage;
+import java.awt.image.ColorConvertOp;
+import java.awt.image.ColorModel;
 import java.awt.image.DataBuffer;
 import java.awt.image.DataBufferByte;
 import java.awt.image.IndexColorModel;
@@ -55,7 +58,11 @@ public class ImageUtils {
   /** The instance. */
   private static ImageUtils instance  = null;
   
-  private Color transparentColor;
+  private Color[] colors;
+  private Color colMonochrome;
+  private Color colCurrentFG;
+  private Color colTransparent;
+  private int   nCurrentFG_idx;
   
   public final static int MOST_DIFFUSION     = 0;
   public final static int MEDIUM_DIFFUSION   = 1;
@@ -87,7 +94,8 @@ public class ImageUtils {
 //  private int bmpClrSize;       // Size of bmpClrIndex;
   
   // Image's pixel data
-  private short[] bmpImage;
+  private short[] bmpShortArray;
+  private byte[]  bmpByteArray;
   private int[] decodedImage;
   private long nOriginalColors;
   private long nCurrentColors;
@@ -115,72 +123,108 @@ public class ImageUtils {
   public ImageUtils() {
     // For GUIslice the default value is 'pink' for the transparent pixel color.
     // can be overridden by calling setTransparentPixelColor()
-    transparentColor = new Color(255,0,255); // Color MAGENTA;
+    colTransparent = new Color(255,0,255); // Color MAGENTA
+    colors = null;
+    colMonochrome = new Color(255,255,255); // Color WHITE
+    colCurrentFG = new Color(255,255,255); // Color WHITE
   }
   
-  public BufferedImage convertTo24(BufferedImage inputImage, boolean bTransparent) {
-    BufferedImage outputImage = null;
-    if(inputImage.getType() != BufferedImage.TYPE_INT_RGB && !bTransparent) {
-      // most incoming BufferedImage that went through some ImageTools operation are ARGB
-      // saving ARGB to bmp will not fail, but pixel color gets distorted
-      // need to convert to RGB 3-channel before saving as non-alpha format, BMP 24,16 ot JPEG
-      // https://stackoverflow.com/a/46460009/1124509
-      // https://stackoverflow.com/questions/9340569/jpeg-image-with-wrong-colors
+  public BufferedImage convertForegroundColor(BufferedImage inputImage, Color newColor) {
+    BufferedImage newImage = null;
+    if (inputImage.getType() == BufferedImage.TYPE_BYTE_BINARY) {
+      if (inputImage.getColorModel() instanceof IndexColorModel) {
+        IndexColorModel colorModelOriginal = (IndexColorModel) inputImage.getColorModel();
+        int[] palette = new int[2];
+        colorModelOriginal.getRGBs(palette);
+        if (palette[0] == colCurrentFG.getRGB())
+          palette[0] = newColor.getRGB();
+        else
+          palette[1] = newColor.getRGB();
+        IndexColorModel colorModelNew = new IndexColorModel(
+            1,         // bits per pixel
+            2,         // size of color component array
+            palette,   // color map
+            0,         // offset in the map
+            DataBuffer.TYPE_BYTE,
+            null);
+        WritableRaster raster = inputImage.getRaster();
+        // Create and return the new BufferedImage
+        newImage = new BufferedImage(inputImage.getWidth(),inputImage.getHeight(),inputImage.getType(), colorModelNew);
+        newImage.setData(raster);
+      } 
+    } else {
+      int nWidth = inputImage.getWidth();
+      int nHeight = inputImage.getHeight();
+      // create our two indexed color map
+      int[] palette = new int[2];
+      palette[0] = Color.BLACK.getRGB();
+      palette[1] = newColor.getRGB();
+      IndexColorModel colorMap = new IndexColorModel(
+          1,         // bits per pixel
+          2,         // size of color component array
+          palette,   // color map
+          0,         // start offset into color map
+          DataBuffer.TYPE_BYTE,
+          null);
+      // Create a buffered image 
+      newImage = new BufferedImage(nWidth, nHeight, BufferedImage.TYPE_BYTE_BINARY, colorMap);
+      WritableRaster outRaster = newImage.getRaster();
 
-      //Get the height and width of the image
-      int width = inputImage.getWidth();
-      int height = inputImage.getHeight();
-  
-      //Get the pixels of the image to an int array 
-      int [] pixels=inputImage.getRGB(0, 0,width,height,null,0,width);
-
-      //Create a new buffered image without an alpha channel. (TYPE_INT_RGB)
-      BufferedImage copy = new BufferedImage(width,height,BufferedImage.TYPE_INT_RGB);
-
-      //Set the pixels of the original image to the new image
-      copy.setRGB(0, 0,width,height,pixels,0,width);
-      inputImage = copy;
+      int[] rgb = new int[4];
+      for (int y = 0; y < nHeight ; y++) {
+        for (int x = 0; x < nWidth; x++) {
+          int inColor = inputImage.getRGB(x, y);
+          if (inColor == colCurrentFG.getRGB()) {
+            outRaster.setPixel(x, y, new int[] { newColor.getRed(), 
+                newColor.getGreen(), 
+                newColor.getBlue(), 
+                0xFF});
+          }
+        } // end x < nWidth
+        
+      } // end y < nHeight
     }
-    ColorSet inputColors = new ColorSet();
-    inputColors.addColors(inputImage);
-    nOriginalColors = inputColors.getColorCount();
-    // creates output image as 24 bit color
-    bmpBpp = 24;
-    outputImage = new BufferedImage(inputImage.getWidth(),
-        inputImage.getHeight(), BufferedImage.TYPE_INT_RGB);
-    // scales the input image to the output image
-    Graphics2D g2d = outputImage.createGraphics();
-    if (bTransparent) 
-      g2d.setColor(transparentColor);
-    else
-      g2d.setColor(Color.WHITE);
-    g2d.fillRect(0, 0, inputImage.getWidth(), inputImage.getHeight());
-    g2d.drawImage(inputImage, 0, 0, inputImage.getWidth(),  inputImage.getHeight(), null);
+    colCurrentFG = new Color(colMonochrome.getRGB());
+    return newImage;
+  }
+  
+  public BufferedImage convertTo1(BufferedImage inputImage) {
+    int nWidth = inputImage.getWidth();
+    int nHeight = inputImage.getHeight();
+    // create our two indexed color map
+    Color colTransparent;
+    int[] palette = new int[2];
+    if (colCurrentFG.getRGB() == Color.BLACK.getRGB()) {
+      colTransparent = Color.WHITE;
+      palette[0] = Color.WHITE.getRGB();
+      palette[1] = colCurrentFG.getRGB();
+    } else {
+      colTransparent = Color.BLACK;
+      palette[0] = Color.BLACK.getRGB();
+      palette[1] = colCurrentFG.getRGB();
+    }
+    IndexColorModel colorMap = new IndexColorModel(
+        1,         // bits per pixel
+        2,         // size of color component array
+        palette,   // color map
+        0,         // start offset into color map
+        DataBuffer.TYPE_BYTE,
+        null);
+    
+    int w = inputImage.getWidth(), h = inputImage.getHeight();
+    int length = (w * h);
+
+    byte[] data = new byte[length];
+    DataBuffer db = new DataBufferByte(data, length);
+    WritableRaster wr = Raster.createPackedRaster(db, w, h, 1, null);
+    BufferedImage blackwhiteImage = new BufferedImage(colorMap, wr, false, null);
+
+    // packs the input image to the output image
+    Graphics2D g2d = blackwhiteImage.createGraphics();
+    g2d.drawImage(inputImage, 0, 0, colTransparent, null);
     g2d.dispose();
-    ColorSet outputColors = new ColorSet();
-    outputColors.addColors(outputImage);
-    nCurrentColors = outputColors.getColorCount();
-    return outputImage;
-  }
-  
-  public BufferedImage convertTo8(BufferedImage inputImage) {
-    BufferedImage outputImage = null;
-    ColorSet inputColors = new ColorSet();
-    inputColors.addColors(inputImage);
-    outputImage = colorQuantizer(inputImage, inputColors, 256, 
-        ImageUtils.MOST_DIFFUSION, ImageUtils.BIASED);
-    ColorSet outputColors = new ColorSet();
-    outputColors.addColors(outputImage);
-    int nColors = outputColors.getColorCount();
-    // Success?
-    if (nColors <= 256) {
-      nCurrentColors = nColors;
-      bmpBpp = 8;
-    } else { 
-      // failure, do not return anything
-      outputImage = null;
-    }
-    return outputImage;
+
+    return blackwhiteImage;
   }
   
   public BufferedImage convertTo4(BufferedImage inputImage) {
@@ -219,44 +263,40 @@ public class ImageUtils {
     return outputImage;
   }
   
-  public BufferedImage convertTo1(BufferedImage inputImage, float bwfactor) {
-    
-    // our colorQuantizer does a poor job with 1 Bpp
-    // so I use a more brute force method
-    BufferedImage dst = new BufferedImage(
-        inputImage.getWidth(), inputImage.getHeight(), BufferedImage.TYPE_INT_RGB);
-    float[] scales = {bwfactor, bwfactor, bwfactor};
-    float[] offsets = new float[4];
-    RescaleOp rop = new RescaleOp(scales, offsets, null);
-
-    Graphics2D g = dst.createGraphics();
-    g.drawImage(inputImage, rop, 0, 0);
-    g.dispose();
-    
-    byte[] bw = {(byte) 0xff, (byte) 0};
-    IndexColorModel blackAndWhite = new IndexColorModel(
-    1, // One bit per pixel
-    2, // Two values in the component arrays
-    bw, // Red Components
-    bw, // Green Components
-    bw);// Blue Components
-    
-    // Create the BufferedImage
-    int w = dst.getWidth(), h = dst.getHeight();
-    int length = ((w + 7) * h) / 8;
-
-    byte[] data = new byte[length];
-    DataBuffer db = new DataBufferByte(data, length);
-    WritableRaster wr = Raster.createPackedRaster(db, w, h, 1, null);
-    BufferedImage outputImage = new BufferedImage(blackAndWhite, wr, false, null);
-    
-    // packs the input image to the output image as 1 bit
+  public BufferedImage convertTo8(BufferedImage inputImage) {
+    BufferedImage outputImage = null;
+    ColorSet inputColors = new ColorSet();
+    inputColors.addColors(inputImage);
+    outputImage = colorQuantizer(inputImage, inputColors, 256, 
+        ImageUtils.MOST_DIFFUSION, ImageUtils.BIASED);
+    ColorSet outputColors = new ColorSet();
+    outputColors.addColors(outputImage);
+    int nColors = outputColors.getColorCount();
+    // Success?
+    if (nColors <= 256) {
+      nCurrentColors = nColors;
+      bmpBpp = 8;
+    } else { 
+      // failure, do not return anything
+      outputImage = null;
+    }
+    return outputImage;
+  }
+  
+  public BufferedImage convertTo24(BufferedImage inputImage) {
+    BufferedImage outputImage = null;
+    nOriginalColors = getNumberOfColors(inputImage);
+    // creates output image as 24 bit color
+    bmpBpp = 24;
+    outputImage = new BufferedImage(inputImage.getWidth(),
+        inputImage.getHeight(), BufferedImage.TYPE_INT_RGB);
+    // scales the input image to the output image
     Graphics2D g2d = outputImage.createGraphics();
-    g2d.drawImage(dst, 0, 0, dst.getWidth(),  dst.getHeight(), null);
+    g2d.drawImage(inputImage, 0, 0, inputImage.getWidth(),  inputImage.getHeight(), colTransparent, null);
     g2d.dispose();
-
-    bmpBpp = 1;
-    nCurrentColors = 2;
+    ColorSet outputColors = new ColorSet();
+    outputColors.addColors(outputImage);
+    nCurrentColors = outputColors.getColorCount();
     return outputImage;
   }
   
@@ -299,12 +339,35 @@ public class ImageUtils {
     return outputImage;
   }
   
-  public long getCurrentColors() {
-    return nCurrentColors;
+  public long getNumberOfColors(BufferedImage inputImage) {
+    colors = null;
+    colCurrentFG = new Color(255,255,255); // Color WHITE
+    ColorSet inputColors = new ColorSet();
+    inputColors.addColors(inputImage);
+    nOriginalColors = inputColors.getColorCount();
+    nCurrentColors = nOriginalColors;
+    if (nCurrentColors < 3) {
+      colors = inputColors.getColors();
+      colCurrentFG = colors[0];
+      nCurrentFG_idx = 0;
+    }
+    return nOriginalColors;
+  }
+  
+  public Color swapFG() {
+    if (nCurrentColors == 2) {
+      nCurrentFG_idx ^= 1;
+      colCurrentFG = colors[nCurrentFG_idx];
+    }
+    return colCurrentFG;
   }
   
   public long getOriginalColors() {
     return nOriginalColors;
+  }
+  
+  public long getCurrentColors() {
+    return nCurrentColors;
   }
   
   public int getBitDepth() {
@@ -312,7 +375,7 @@ public class ImageUtils {
   }
   
   /**
-   * Set the value of transparent pixel colors
+   * Set the value of transparent pixel color
    *
    * @param r
    *        the red value
@@ -323,16 +386,45 @@ public class ImageUtils {
    *
    */
   public void setTransparentPixelColor(Color transparentColor) {
-    this.transparentColor = transparentColor;
+    this.colTransparent = transparentColor;
+  }
+  
+  /**
+   * Set the value of monochrome pixel color
+   *
+   * @param color
+   *        the color value
+   */
+  public void setMonochromeColor(Color color) {
+    this.colMonochrome = color;
+  }
+  
+  /**
+   * get the value of monochrome pixel color
+   * @return
+   */
+  public Color getMonochromeColor() {
+    return colMonochrome;
+  }
+  
+  /**
+   * setBackgroundColor
+   * @param color
+   */
+  public void setFGColor(Color color) {
+    this.colCurrentFG = color;
+  }
+  
+  public Color getFGColor() {
+    return colCurrentFG;
   }
   
   public BufferedImage clone(BufferedImage inputImage) {
-    BufferedImage outputImage = new BufferedImage(inputImage.getWidth(),
-        inputImage.getHeight(), inputImage.getType());
-    // scales the input image to the output image
-    Graphics2D g2d = outputImage.createGraphics();
-    g2d.drawImage(inputImage, 0, 0, inputImage.getWidth(),  inputImage.getHeight(), null);
-    g2d.dispose();
+    BufferedImage outputImage = null;
+    ColorModel cm = inputImage.getColorModel();
+    boolean isAlphaPremultiplied = cm.isAlphaPremultiplied();
+    WritableRaster raster = inputImage.copyData(inputImage.getRaster().createCompatibleWritableRaster());
+    outputImage= new BufferedImage(cm, raster, isAlphaPremultiplied, null);
     return outputImage;
   }
 
@@ -377,137 +469,156 @@ public class ImageUtils {
     return outputImage;
   }
 
-  public void image2C_Array(BufferedImage image, String bmpFileName, File file, String arrayName, 
-      String ext, boolean bUseLittleEndian, boolean bCArrayFlash) throws IOException
+  public void image2C_Array(BufferedImage inputImage, String bmpFileName, File file, String arrayName, 
+      String ext, boolean bUseLittleEndian, boolean bCArrayFlash, boolean bIsTransparent) throws IOException
   {
-    // First thing is to convert our image to a BMP 24 bit memory based image
-    // for processing.
-    ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-    // writes to the output image in specified format
-    boolean result = ImageIO.write(image, "bmp", outputStream);
-    if (!result) {
-      throw new IOException("ImageIO.write failed");
-    }
-    // needs to close the streams
-    outputStream.flush();
-    outputStream.close();
-    
-    // Now read our memory based BMP into variables so we can later do our ouput
-    byte[] bmpArray = outputStream.toByteArray();
-    
-    LittleEndianDataInputStream fIn = 
-        new LittleEndianDataInputStream(new ByteArrayInputStream(bmpArray));
-    hfType = fIn.readShort();
-    if (hfType != 0x4D42) {  // test for "BM"
-      fIn.close();
-      throw new IOException("hfType != 0x4D42");
-    }
-    hfSize = fIn.readInt();
-    hfReserved1 = fIn.readShort();     
-    hfReserved2 = fIn.readShort();     
-    hfOffset = fIn.readInt();
-
-    //Read Header Info
-    bmpHdrSz = fIn.readInt();
-    bmpWidth = fIn.readInt();
-    bmpHeight = fIn.readInt();
-    bmpPlanes = fIn.readShort();     
-    bmpBpp = fIn.readShort();
-    bmpCompression = fIn.readInt();
-    if (bmpCompression == 0 && bmpBpp != 24) {
-      fIn.close();
-      throw new IOException("corrupted BMP");
-    }
-/*
-    if (((bmpCompression == 0 && bmpBpp == 1)    || // MONO 
-          (bmpCompression == 3 && bmpBpp == 16)  || // RGB565
-          (bmpCompression == 0 && bmpBpp == 16)  || // RGB555
-          (bmpCompression == 0 && bmpBpp == 8)  || 
-          (bmpCompression == 0 && bmpBpp == 4)) && 
-          (bmpPlanes == 1)) {
-*/
-    bmpImgSz = fIn.readInt();
-    bmpXRes = fIn.readInt();
-    bmpYRes = fIn.readInt();
-    bmpClrUsed = fIn.readInt();
-    bmpClrImportant = fIn.readInt();
-/*
-      if (bmpClrUsed == 0 && bmpClrImportant > 0)
-        bmpClrUsed = bmpClrImportant;
-      bmpClrIndex = null;
-      bmpClrSize = 0;
-      if (hfOffset > 54) { 
-        bmpClrSize = (hfOffset-54)/4;
-        if (bmpClrSize > 256) {
-          fIn.close();
-          return false;
-        }
-        // copy the color palette
-        bmpClrIndex = new int[bmpClrSize];
-        for (int i=0; i<bmpClrSize; i++) {
-          bmpClrIndex[i] = fIn.readInt();
-        }
+    int arraySz;
+    try {
+    if( nCurrentColors < 3 && inputImage.getType() != BufferedImage.TYPE_BYTE_BINARY) {
+//       BufferedImage image = convertTo24(inputImage, true);
+       BufferedImage blackWhite = convertTo1(inputImage);
+       DataBufferByte data = (DataBufferByte) blackWhite.getRaster().getDataBuffer();
+       bmpByteArray = data.getData();
+       bmpBpp = 1;
+       bmpWidth = inputImage.getWidth();
+       bmpHeight = inputImage.getHeight();
+       bmpImgSz = bmpByteArray.length;
+       arraySz = bmpImgSz;
+    } else if(inputImage.getType() == BufferedImage.TYPE_BYTE_BINARY) {
+      
+      BufferedImage blackWhite = 
+         new BufferedImage(inputImage.getWidth(), inputImage.getHeight(), BufferedImage.TYPE_BYTE_BINARY);
+      ColorConvertOp op = new ColorConvertOp(ColorSpace.getInstance(ColorSpace.CS_GRAY), null);
+      op.filter(inputImage, blackWhite);
+      DataBufferByte data = (DataBufferByte) blackWhite.getRaster().getDataBuffer();
+      bmpByteArray = data.getData();
+      bmpBpp = 1;
+      bmpWidth = inputImage.getWidth();
+      bmpHeight = inputImage.getHeight();
+      bmpImgSz = bmpByteArray.length;
+      arraySz = bmpImgSz;
+//      System.out.println("bmpByteArray len: " + bmpImgSz);
+    } else {
+      // First thing is to convert our image to a BMP 24 bit memory based image
+      // for processing.
+      BufferedImage convertedImage = convertTo24(inputImage);
+      
+      ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+      // writes to the output image in specified format
+      boolean result = ImageIO.write(convertedImage, "bmp", outputStream);
+      if (!result) {
+        throw new IOException("ImageIO.write failed");
       }
-*/
-/*
-    String hexType = Integer.toHexString(hfType & 0xffff);
-    System.out.println("hfType: " + hexType);
-    System.out.println("hfSize: " + hfSize);
-    System.out.println("hfOffset: " + hfOffset);
-    System.out.println("bmpHdrSz: " + bmpHdrSz);
-    System.out.println("bmpWidth: " + bmpWidth);
-    System.out.println("bmpHeight: " + bmpHeight);
-    System.out.println("bmpBpp: " + bmpBpp);
-    System.out.println("bmpCompression: " + bmpCompression);
-    System.out.println("bmpImgSz: " + bmpImgSz);
-    System.out.println("bmpXRes: " + bmpXRes);
-    System.out.println("bmpYRes: " + bmpYRes);
-    System.out.println("bmpClrUsed: " + bmpClrUsed);
-    System.out.println("bmpClrImportant: " + bmpClrImportant);
-*/
+      // needs to close the streams
+      outputStream.flush();
+      outputStream.close();
+      // Now read our memory based BMP into variables so we can later do our output
+      byte[] bmpArray = outputStream.toByteArray();
+    
+      LittleEndianDataInputStream fIn = 
+          new LittleEndianDataInputStream(new ByteArrayInputStream(bmpArray));
+      hfType = fIn.readShort();
+      if (hfType != 0x4D42) {  // test for "BM"
+        fIn.close();
+        throw new IOException("hfType != 0x4D42");
+      }
+      hfSize = fIn.readInt();
+      hfReserved1 = fIn.readShort();     
+      hfReserved2 = fIn.readShort();     
+      hfOffset = fIn.readInt();
+  
+      //Read Header Info
+      bmpHdrSz = fIn.readInt();
+      bmpWidth = fIn.readInt();
+      bmpHeight = fIn.readInt();
+      bmpPlanes = fIn.readShort();     
+      bmpBpp = fIn.readShort();
+      bmpCompression = fIn.readInt();
+      bmpImgSz = fIn.readInt();
+      bmpXRes = fIn.readInt();
+      bmpYRes = fIn.readInt();
+      bmpClrUsed = fIn.readInt();
+      bmpClrImportant = fIn.readInt();
+  /*
+        if (bmpClrUsed == 0 && bmpClrImportant > 0)
+          bmpClrUsed = bmpClrImportant;
+        bmpClrIndex = null;
+        bmpClrSize = 0;
+        if (hfOffset > 54) { 
+          bmpClrSize = (hfOffset-54)/4;
+          if (bmpClrSize > 256) {
+            fIn.close();
+            return false;
+          }
+          // copy the color palette
+          bmpClrIndex = new int[bmpClrSize];
+          for (int i=0; i<bmpClrSize; i++) {
+            bmpClrIndex[i] = fIn.readInt();
+          }
+        }
+  */
+/*  
+      String hexType = Integer.toHexString(hfType & 0xffff);
+      System.out.println("hfType: " + hexType);
+      System.out.println("hfSize: " + hfSize);
+      System.out.println("hfOffset: " + hfOffset);
+      System.out.println("bmpHdrSz: " + bmpHdrSz);
+      System.out.println("bmpWidth: " + bmpWidth);
+      System.out.println("bmpHeight: " + bmpHeight);
+      System.out.println("bmpBpp: " + bmpBpp);
+      System.out.println("bmpCompression: " + bmpCompression);
+      System.out.println("bmpImgSz: " + bmpImgSz);
+      System.out.println("bmpXRes: " + bmpXRes);
+      System.out.println("bmpYRes: " + bmpYRes);
+      System.out.println("bmpClrUsed: " + bmpClrUsed);
+      System.out.println("bmpClrImportant: " + bmpClrImportant);
       // display the color palette
-//  System.out.println("bmpClrSize: " + bmpClrSize);
-//      if (bmpClrSize > 0) {
-//        for (int i=0; i<bmpClrSize; i++) {
-//          String hex = String.format("0x%08X",bmpClrIndex[i]);
-//          System.out.println("bmpClrIndex[" + i + "]: " + hex);
-//        }
-//      }
-    bFlip = true;
-    if (bmpHeight < 0) {
-      bFlip = false;
-      bmpHeight = -bmpHeight;
+      System.out.println("bmpClrSize: " + bmpClrSize);
+      if (bmpClrSize > 0) {
+        for (int i=0; i<bmpClrSize; i++) {
+          String hex = String.format("0x%08X",bmpClrIndex[i]);
+          System.out.println("bmpClrIndex[" + i + "]: " + hex);
+         }
+       }
+   * 
+   */
+      bFlip = true;
+      if (bmpHeight < 0) {
+        bFlip = false;
+        bmpHeight = -bmpHeight;
+      }
+      
+      bmpShortArray = new short[bmpImgSz];
+      for(int x=0; x<bmpImgSz; x++)
+      {
+        bmpShortArray[x] = (short) (fIn.readByte() & 0xFF);
+      }
+      arraySz =  bmpWidth * bmpHeight * 2; 
+      fIn.close();
     }
-    bmpImage = new short[bmpImgSz];
-    int x;
-    for(x=0; x<bmpImgSz; x++)
-    {
-      bmpImage[x] = (short) (fIn.readByte() & 0xFF);
-    }
-    fIn.close();
-    
-    // Everything is now stored in variables but our bitmap image needs further processing
-    decodeBitmap(bUseLittleEndian);
-    
+      
     // We can now output the BMP
     // Start with the Header info
-    int arraySz =  bmpWidth * bmpHeight; // image as ushorts
     String line;
     CArrayOutputStream fOut = new CArrayOutputStream(file, bUseLittleEndian);
     
     // output our boiler plate
     fOut.writeString("//------------------------------------------------------------------------------\n");
-    fOut.writeString("// File Generated by image2c\n");
+    fOut.writeString("// File Generated by GUIslice_Image2C\n");
     fOut.writeString("//------------------------------------------------------------------------------\n");
     line = String.format("// Generated from   : %s%s\n",bmpFileName, ext);
     fOut.writeString(line);
     line = String.format("// Dimensions       : %dx%d pixels\n",bmpWidth,bmpHeight);
     fOut.writeString(line);
-    line = String.format("// Bits Per Pixel   : %d Bits\n",16);
+    if (bmpBpp == 1) {
+      line = String.format("// Bits Per Pixel   : %d Bits\n",1);
+    } else {
+      line = String.format("// Bits Per Pixel   : %d Bits\n",16);
+    }
     fOut.writeString(line); 
-    line = String.format("// Memory Size      : %d Bytes\n",arraySz*2);
+    line = String.format("// Memory Size      : %d Bytes\n",arraySz);
     fOut.writeString(line); 
-    line = String.format("// Little Endian    : %s uint16_t\n",bUseLittleEndian);
+    line = String.format("// Little Endian    : %s\n",bUseLittleEndian);
     fOut.writeString(line);
     fOut.writeString("//------------------------------------------------------------------------------\n");
     fOut.writeString("\n");
@@ -527,19 +638,60 @@ public class ImageUtils {
       fOut.writeString("  #endif\n");
       fOut.writeString("#endif\n");
       fOut.writeString("\n");
-      line = String.format("const unsigned short %s[%d+2] GSLC_PMEM = {\n", arrayName, arraySz);
+      if (bmpBpp == 1) {
+        line = String.format("const unsigned char %s[%d+7] GSLC_PMEM = {\n", arrayName, arraySz);
+      } else {
+        line = String.format("const unsigned short %s[%d+2] GSLC_PMEM = {\n", arrayName, arraySz);
+      }
     } else {
-      line = String.format("const unsigned short %s[%d+2] = {\n", arrayName, arraySz);
+      if (bmpBpp == 1) {
+        line = String.format("const unsigned char %s[%d+5] = {\n", arrayName, arraySz);
+      } else {
+        line = String.format("const unsigned short %s[%d+2] = {\n", arrayName, arraySz);
+      }
     }
     fOut.writeString(line);
-    line = String.format("%d, // Height of image\n", bmpHeight);
-    fOut.writeString(line);
-    line = String.format("%d, // Width of image\n", bmpWidth);
-    fOut.writeString(line);
     
-    // Our header is completed so now do the bitmap image
-    fOut.streamArray(decodedImage);
+    if (bmpBpp == 1) {
+      // output Height and width as two bytes in big endian format
+      int byteHi = (bmpHeight >>> 8) & 0xFF;
+      int byteLo = bmpHeight & 0xFF;
+      line = String.format("0x%02X, // Height of image\n", byteHi);
+      fOut.writeString(line);
+      line = String.format("0x%02X,\n", byteLo);
+      fOut.writeString(line);
+      byteHi = (bmpWidth >>> 8) & 0xFF;
+      byteLo = bmpWidth & 0xFF;
+      line = String.format("0x%02X, // Width of image\n", byteHi);
+      fOut.writeString(line);
+      line = String.format("0x%02X,\n", byteLo);
+      fOut.writeString(line);
+      /* for 1 bit pixel imahes GUIslice expects 
+       * the foreground color to be output as
+       * red, green, and blue
+       */
+      line = String.format("%03d, // red color\n",colCurrentFG.getRed());
+      fOut.writeString(line);
+      line = String.format("%03d, // green color\n",colCurrentFG.getGreen());
+      fOut.writeString(line);
+      line = String.format("%03d, // blue color\n",colCurrentFG.getBlue());
+      fOut.writeString(line);
+      // Our header is completed so now do the bitmap image
+      fOut.streamArray(bmpByteArray);
+    }  else {  
+      line = String.format("%d, // Height of image\n", bmpHeight);
+      fOut.writeString(line);
+      line = String.format("%d, // Width of image\n", bmpWidth);
+      fOut.writeString(line);
+      // Our header is completed
+      // Everything is now stored in variables but our bitmap image needs further processing
+      decodeBitmap(bUseLittleEndian);
+      fOut.streamArray(decodedImage);
+    }
     fOut.close();
+    } catch (Exception e) {
+      System.out.println(e.toString());
+    }
   }
 
   /*
@@ -566,28 +718,61 @@ public class ImageUtils {
       }
       for (int col = 0; col < bmpWidth; col++) { // For each pixel...
         // Convert pixel from BMP to TFT format, push to display
-        b = bmpImage[pos++];
-        g = bmpImage[pos++];
-        r = bmpImage[pos++];
+        b = bmpShortArray[pos++];
+        g = bmpShortArray[pos++];
+        r = bmpShortArray[pos++];
         // Default to DRV_COLORMODE_RGB565
 
         nColRaw  = (((r & 0xF8) >> 3) << 11); // Mask: 1111 1000 0000 0000
         nColRaw |= (((g & 0xFC) >> 2) <<  5); // Mask: 0000 0111 1110 0000
         nColRaw |= (((b & 0xF8) >> 3) <<  0); // Mask: 0000 0000 0001 1111
-/*
-    nColRaw |= (((b & 0xF8) >> 3) << 11); // Mask: 1111 1000 0000 0000
-    nColRaw |= (((g & 0xFC) >> 2) <<  5); // Mask: 0000 0111 1110 0000
-    nColRaw |= (((r & 0xF8) >> 3) <<  0); // Mask: 0000 0000 0001 1111
-*/
         decodedImage[idx++] = (short) (nColRaw);
       } // end pixel
     } // end scanline
   }
 
+  /**
+   * fromRGB565
+   * Convert RGB565 color to Java Color object
+   * 
+   * @param n RGB565 as integer
+   * @return Color object
+   */
+  public static Color fromRGB565(int n) {
+    int r = (n & 0xFF0000) >> 16;
+    int g = (n & 0xFF00) >> 8;
+    int b = (n & 0xFF);
+    return new Color(r,g,b);
+  }
+  
+  /**
+   * toRGB565
+   * Convert Java Color to RGB565 color
+   *
+   * @param the color to convert
+   * @return RGB565 format color
+   */
+  public static int toRGB565(Color color) {
+    //RGB888
+    int r = color.getRed();
+    int g = color.getGreen();
+    int b = color.getBlue();
+    
+    //Converting to RGB565
+    int nColRaw  = (((r & 0xF8) >> 3) << 11); // Mask: 1111 1000 0000 0000
+    nColRaw |= (((g & 0xFC) >> 2) <<  5); // Mask: 0000 0111 1110 0000
+    nColRaw |= (((b & 0xF8) >> 3) <<  0); // Mask: 0000 0000 0001 1111
 
-  public void image2File(BufferedImage image, File file) throws IOException {
-    BufferedImage newImage = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_INT_RGB);
-    newImage.createGraphics().drawImage(image, 0, 0, Color.WHITE, null);
-    ImageIO.write(newImage, "BMP", file);
+    return nColRaw;
+  }
+  
+  public void image2File(BufferedImage image, File file, boolean bMonochrome) throws IOException {
+    if (!bMonochrome) {
+      BufferedImage newImage = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_INT_RGB);
+      newImage.createGraphics().drawImage(image, 0, 0, Color.WHITE, null);
+      ImageIO.write(newImage, "BMP", file);
+    } else {
+      ImageIO.write(image, "BMP", file);
+    }
   }
 }
