@@ -47,12 +47,7 @@ be exported in 1 bit format not 16 bit format greatly reducing the memory requir
 
 <p>If you have configured GUIslice API to use another color instead of Magenta you may select the colored Pink box 
 on the lower right of the display and choose another color to match the one you actually configured. 
-Changing this color requires you to modify your GUIslice/config/*.h file's variable GSLC_BMP_TRANS_RGB:</p>
-```
-  // Enable for bitmap transparency and definition of color to use
-  #define GSLC_BMP_TRANS_EN     1               // 1 = enabled, 0 = disabled
-  #define GSLC_BMP_TRANS_RGB    0xFF,0x00,0xFF  // RGB color (default: MAGENTA)
-```
+Changing this color requires you to modify your GUIslice/config/*.h file's variable GSLC_BMP_TRANS_RGB</p>
 
 #### Monochrome Images
 
