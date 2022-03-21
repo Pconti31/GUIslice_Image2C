@@ -2,7 +2,7 @@
  *
  * The MIT License
  *
- * Copyright 2020 Paul Conti
+ * Copyright 2020-2022 Paul Conti
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -29,12 +29,8 @@ import java.awt.EventQueue;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.image.BufferedImage;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
-import java.math.RoundingMode;
-import java.text.DecimalFormat;
-import java.text.NumberFormat;
 import java.text.ParseException;
 
 import javax.swing.JFrame;
@@ -54,28 +50,18 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.imageio.ImageIO;
 import javax.swing.AbstractButton;
-//import javax.swing.ButtonGroup;
-import javax.swing.GroupLayout;
-import javax.swing.GroupLayout.Alignment;
 
 import java.awt.Dimension;
 
-import javax.swing.JLabel;
-import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 
-import javax.swing.JTextField;
-import javax.swing.LayoutStyle.ComponentPlacement;
 import javax.swing.filechooser.FileFilter;
-import javax.swing.text.DefaultFormatter;
-import javax.swing.text.NumberFormatter;
 
 import Image2C.common.ImageUtils;
 
 import javax.swing.JFormattedTextField;
 import javax.swing.JFileChooser;
-import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 
 /**
@@ -102,7 +88,7 @@ public class ImageApp implements ActionListener {
   public static final String PROGRAM_TITLE = "GUIslice Image2C";
   
   /** The Constant VERSION is our application version number. */
-  public static final String VERSION = "1.04";
+  public static final String VERSION = "2.00";
 
   /** The Constant VERSION_NO is for save and restore of user preferences. */
   public static final String VERSION_NO = "-1";
@@ -111,7 +97,7 @@ public class ImageApp implements ActionListener {
   private File imageFile;
   
   /** The image utils. */
-  private ImageUtils imageUtils = null;
+  static private ImageUtils imageUtils = null;
   
   /** The fc. */
   private JFileChooser fc=null;
@@ -121,9 +107,6 @@ public class ImageApp implements ActionListener {
   
   /** The bi original image. */
   private BufferedImage biOriginalImage=null;
-  
-  /** The bi input image. */
-  private BufferedImage biInputImage=null;
   
   /** The bi converted image. */
   private BufferedImage biConvertedImage=null;
@@ -143,83 +126,27 @@ public class ImageApp implements ActionListener {
   /** The s C array name. */
   private String sCArrayName;
   
-  /** The orig width. */
-  private int origWidth;
-  
-  /** The orig height. */
-  private int origHeight;
-  
-  /** The scaled width. */
-  private int scaledWidth;
-  
-  /** The scaled height. */
-  private int scaledHeight;
-  
-  /** The bpp. */
-  private int bpp;
-  
   /** The b is transparent. */
-  private boolean bIsTransparent;
-  
-  /** The btn trans color. */
-  private JButton btnTransColor;
+  private boolean bTransparentChange;
   
   /** The transparent color. */
-  private Color transparentColor;
+  static Color transparentColor;
 
+  /** The number of colors in the image */
+  private long numColors;
+  
   /** The frame. */
   private JFrame frame;
   
   /** The image pane. */
   private JPanel imagePane;
   
-  /** The properties pane. */
-  private JPanel propertiesPane;
-  
-  /** The txt output file. */
-  private JTextField txtOutputFile;
-  
-  /** The txt C array. */
-  private JTextField txtCArray;
-  
-  /** The txt width. */
-  private JFormattedTextField txtWidth;
-  
-  /** The txt height. */
-  private JFormattedTextField txtHeight;
-  
-  /** The txt num colors. */
-  private JFormattedTextField txtNumColors;
-  
-  /** The txt image size. */
-  private JFormattedTextField txtImageSize;
-  
-  /** The cb little endian. */
-  private JCheckBox cbLittleEndian;
-  
-  /** The cb target guislice. */
-//  private JCheckBox cbTargetGuislice;
-  
-  /** The cb C array flash. */
-  private JCheckBox cbCArrayFlash;
-  
-  /** The cb transparent. */
-  private JCheckBox cbTransparent;
-  
-  /** The cb gray scale. */
-  private JCheckBox cbGrayScale;
-  
-  /* B&W Factor for converting to 1 bit format */
-  private JFormattedTextField txtBwFactor;
-  
-  private Float bwfactor;
+  /** The options pane. */
+  private OptionsPanel optionsPane;
   
   /** The cc. */
   private ColorChooser cc;
   
-  /** The amount format. */
-  private NumberFormat amountFormat;
-
   /**
    * Launch the application.
    *
@@ -276,13 +203,17 @@ public class ImageApp implements ActionListener {
     openMenuItem.setActionCommand("open");
     mbFile.add(openMenuItem);
     
+/*
+ * I've decided to not support this any longer and stick with just C Arrays
+ */
+/*
     JMenuItem SaveMenuItem = new JMenuItem("Save",
         new ImageIcon(ImageApp.class.getResource("/resources/save.png")));
     SaveMenuItem.setToolTipText("Save image as BMP file");
     SaveMenuItem.setActionCommand("save");
     SaveMenuItem.addActionListener(this);
     mbFile.add(SaveMenuItem);
-    
+*/    
     JMenuItem exportMenuItem = new JMenuItem("Export",
         new ImageIcon(ImageApp.class.getResource("/resources/export.png")));
     exportMenuItem.setToolTipText("Export file with image stored as C Array");
@@ -324,12 +255,16 @@ public class ImageApp implements ActionListener {
     btnOpen.addActionListener(this);
     toolBar.add(btnOpen);
     
+    /*
+     * I've decided to not support this any longer and stick with just C Arrays
+     */
+/*
     JButton btnSave = new JButton(new ImageIcon(ImageApp.class.getResource("/resources/save.png")));
     btnSave.setToolTipText("Save as BMP file");
     btnSave.setActionCommand("save");
     btnSave.addActionListener(this);
     toolBar.add(btnSave);
-
+*/
     toolBar.addSeparator();
 
     JButton btnUndo = new JButton(new ImageIcon(ImageApp.class.getResource("/resources/undo.png")));
@@ -378,318 +313,12 @@ public class ImageApp implements ActionListener {
 //    scrollPane.setBounds(0, 0, 2, 2);
     frame.getContentPane().add(scrollPane, BorderLayout.CENTER);
     
-    amountFormat = NumberFormat.getIntegerInstance();
     
-    propertiesPane = new JPanel();
-    frame.getContentPane().add(propertiesPane, BorderLayout.EAST);
-    propertiesPane.setPreferredSize(new Dimension(250, 500));
+    optionsPane = new OptionsPanel();
+    frame.getContentPane().add(optionsPane, BorderLayout.EAST);
+    optionsPane.addListeners(this);
+    optionsPane.setPreferredSize(new Dimension(250, 500));
     
-    JLabel lblFileOptions = new JLabel("File Options");
-    lblFileOptions.setFont(new Font("SansSerif", Font.BOLD, 14));
-    
-    JLabel lblBMPOptions = new JLabel("BMP Options");
-    lblBMPOptions.setFont(new Font("SansSerif", Font.BOLD, 14));
-    
-    JLabel lblOutputFile = new JLabel("Output File:");
-    lblOutputFile.setFont(new Font("SansSerif", Font.PLAIN, 12));
-    
-    txtOutputFile = new JFormattedTextField(new DefaultFormatter());
-    txtOutputFile.addActionListener(new ActionListener() {
-      public void actionPerformed(ActionEvent e) {
-        sOutputName = txtOutputFile.getText();
-      }
-    });
-    txtOutputFile.setFont(new Font("SansSerif", Font.PLAIN, 12));
-    txtOutputFile.setColumns(10);
-    
-    JLabel lblCArray = new JLabel("C Array:");
-    lblCArray.setFont(new Font("SansSerif", Font.PLAIN, 12));
-    
-    txtCArray = new JFormattedTextField(new DefaultFormatter());
-    txtCArray.addActionListener(new ActionListener() {
-      public void actionPerformed(ActionEvent e) {
-        sCArrayName = txtCArray.getText();
-        sCArrayName = sCArrayName.replaceAll("[^A-Za-z0-9()\\[\\]]", "_");
-        txtCArray.setText(sCArrayName);
-      }
-    });
-    txtCArray.setFont(new Font("SansSerif", Font.PLAIN, 12));
-    txtCArray.setColumns(10);
-    
-    cbLittleEndian = new JCheckBox("Output Little Endian");
-    cbLittleEndian.setFont(new Font("SansSerif", Font.PLAIN, 12));
-    
-//    cbTargetGuislice = new JCheckBox("Target GUIslice?");
-//    cbTargetGuislice.setFont(new Font("SansSerif", Font.PLAIN, 12));
-    
-    cbCArrayFlash = new JCheckBox("C Array as PROGMEM Storage?");
-    cbCArrayFlash.setFont(new Font("SansSerif", Font.PLAIN, 12));
-    
-    JLabel lblSize = new JLabel("Image Size in Bytes:");
-    lblSize.setFont(new Font("SansSerif", Font.PLAIN, 12));
-    
-    JLabel lblDepth = new JLabel("Bit Depth:");
-    lblDepth.setFont(new Font("SansSerif", Font.PLAIN, 12));
-/*    
-    rb1Bit = new JRadioButton("1 Bit");
-    rb1Bit.setFont(new Font("SansSerif", Font.PLAIN, 12));
-    rb1Bit.setActionCommand("convert1bit");
-    rb1Bit.addActionListener(this);
-    buttonGroup.add(rb1Bit);
-    
-    rb4Bit = new JRadioButton("4 Bit");
-    rb4Bit.setFont(new Font("SansSerif", Font.PLAIN, 12));
-    rb4Bit.setActionCommand("convert4bit");
-    rb4Bit.addActionListener(this);
-    buttonGroup.add(rb4Bit);
-    
-    rb8Bit = new JRadioButton("8 Bit");
-    rb8Bit.setFont(new Font("SansSerif", Font.PLAIN, 12));
-    rb8Bit.setActionCommand("convert8bit");
-    rb8Bit.addActionListener(this);
-    buttonGroup.add(rb8Bit);
-    
-    rb16Bit = new JRadioButton("16 Bit");
-    rb16Bit.setFont(new Font("SansSerif", Font.PLAIN, 12));
-    rb16Bit.setActionCommand("convert16bit");
-    rb16Bit.addActionListener(this);
-    buttonGroup.add(rb16Bit);
-*/  
-    JLabel lblDummy = new JLabel("      ");
-    cbGrayScale = new JCheckBox("Gray Scale");
-    cbGrayScale.setFont(new Font("SansSerif", Font.PLAIN, 12));
-    cbGrayScale.setActionCommand("grayscale");
-    cbGrayScale.addActionListener(this);
-    
-    JLabel lblWidth = new JLabel("Width:");
-    lblWidth.setFont(new Font("SansSerif", Font.PLAIN, 12));
-    
-    JLabel lblHeight = new JLabel("Height:");
-    lblHeight.setFont(new Font("SansSerif", Font.PLAIN, 12));
-    
-    txtWidth = new JFormattedTextField(amountFormat);
-    txtWidth.setColumns(5);
-    txtWidth.setFont(new Font("SansSerif", Font.PLAIN, 12));
-    txtWidth.addActionListener(new ActionListener() {
-      public void actionPerformed(ActionEvent e) {
-        scaledWidth = ((Long) txtWidth.getValue()).intValue();
-        double ratio = (double)origWidth / (double)scaledWidth;
-        scaledHeight = (int)((double)origHeight/ratio);
-        txtHeight.setValue(scaledHeight);
-        origWidth = scaledWidth;
-        origHeight = scaledHeight;
-        biConvertedImage = imageUtils.imageResize(biConvertedImage, scaledWidth, scaledHeight);
-        biInputImage = imageUtils.clone(biConvertedImage);
-        updateProperties();
-      }
-    });
-    
-    txtHeight = new JFormattedTextField(amountFormat);
-    txtHeight.setColumns(5);
-    txtHeight.setFont(new Font("SansSerif", Font.PLAIN, 12));
-    txtHeight.addActionListener(new ActionListener() {
-      public void actionPerformed(ActionEvent e) {
-        scaledHeight = ((Long) txtHeight.getValue()).intValue();
-        double ratio = (double)origHeight / (double)scaledHeight;
-        scaledWidth = (int)((double)origWidth/ratio);
-        txtWidth.setValue(scaledWidth);
-        origWidth = scaledWidth;
-        origHeight = scaledHeight;
-        biConvertedImage = imageUtils.imageResize(biConvertedImage, scaledWidth, scaledHeight);
-        biInputImage = imageUtils.clone(biConvertedImage);
-        updateProperties();
-      }
-    });
-    
-    txtImageSize = new JFormattedTextField(amountFormat);
-    txtImageSize.setColumns(10);
-    txtImageSize.setFont(new Font("SansSerif", Font.PLAIN, 12));
-    txtImageSize.setEditable(false);
-    
-    JLabel lblColors = new JLabel("# Colors:");
-    lblColors.setFont(new Font("SansSerif", Font.PLAIN, 12));
-    
-    txtNumColors = new JFormattedTextField(amountFormat);
-    txtNumColors.setColumns(5);
-    txtNumColors.setFont(new Font("SansSerif", Font.PLAIN, 12));
-    
-    cbTransparent = new JCheckBox("Transparent Pixels");
-    cbTransparent.setActionCommand("transparent");
-    cbTransparent.addActionListener(this);
-    cbTransparent.setFont(new Font("SansSerif", Font.PLAIN, 12));
-        
-    NumberFormatter intf = new NumberFormatter();
-    intf.setMinimum(Integer.valueOf(0));
-    intf.setMaximum(Integer.valueOf(255));
-    
-    JLabel lblTransparentPixelColor = new JLabel("Transparent Pixel Color:");
-    lblTransparentPixelColor.setFont(new Font("SansSerif", Font.PLAIN, 12));
-    
-    btnTransColor = new JButton();
-    btnTransColor.setBorderPainted(false);
-    btnTransColor.setBackground(transparentColor);
-    btnTransColor.setActionCommand("transcolor");
-    btnTransColor.addActionListener(this);
-    
-    JLabel lblBwBit = new JLabel("B&W Factor:");
-    lblBwBit.setFont(new Font("SansSerif", Font.PLAIN, 12));
-    
-    NumberFormat factorFormat = DecimalFormat.getInstance();
-    factorFormat.setMinimumFractionDigits(2);
-    factorFormat.setMaximumFractionDigits(2);
-    factorFormat.setRoundingMode(RoundingMode.HALF_UP);
-    
-    txtBwFactor = new JFormattedTextField(factorFormat);
-    txtBwFactor.setValue(new Float(0.55));
-    txtBwFactor.setFont(new Font("SansSerif", Font.PLAIN, 12));
-    txtBwFactor.addActionListener(new ActionListener() {
-      public void actionPerformed(ActionEvent e) {
-        if (biInputImage != null && bpp == 1) {
-          try {
-            ((JFormattedTextField) txtBwFactor).commitEdit();
-          } catch (ParseException e1) {
-            // TODO Auto-generated catch block
-            e1.printStackTrace();
-          }
-          bwfactor = (Float) ((Double)txtBwFactor.getValue()).floatValue();
-          biConvertedImage = imageUtils.convertTo1(biInputImage, bwfactor);
-          updateProperties();
-        }
-      }
-    });
-    
-    GroupLayout gl_propertiesPane = new GroupLayout(propertiesPane);
-    gl_propertiesPane.setHorizontalGroup(
-      gl_propertiesPane.createParallelGroup(Alignment.LEADING)
-        .addGroup(gl_propertiesPane.createSequentialGroup()
-          .addContainerGap()
-          .addGroup(gl_propertiesPane.createParallelGroup(Alignment.LEADING)
-            .addComponent(cbCArrayFlash)
-            .addComponent(cbLittleEndian)
-            .addGroup(gl_propertiesPane.createSequentialGroup()
-              .addGroup(gl_propertiesPane.createParallelGroup(Alignment.LEADING)
-                .addComponent(lblCArray, GroupLayout.PREFERRED_SIZE, 74, GroupLayout.PREFERRED_SIZE)
-                .addComponent(lblOutputFile, GroupLayout.DEFAULT_SIZE, 74, Short.MAX_VALUE))
-              .addPreferredGap(ComponentPlacement.RELATED)
-              .addGroup(gl_propertiesPane.createParallelGroup(Alignment.LEADING, false)
-                .addComponent(txtOutputFile)
-                .addComponent(txtCArray, GroupLayout.DEFAULT_SIZE, 134, Short.MAX_VALUE)))
-            .addGroup(gl_propertiesPane.createParallelGroup(Alignment.TRAILING)
-              .addComponent(lblBMPOptions)
-              .addComponent(lblDummy)))
-          .addGap(97))
-        .addGroup(gl_propertiesPane.createSequentialGroup()
-          .addGap(30)
-          .addComponent(lblFileOptions)
-          .addContainerGap(204, Short.MAX_VALUE))
-        .addGroup(gl_propertiesPane.createSequentialGroup()
-          .addContainerGap()
-          .addGroup(gl_propertiesPane.createParallelGroup(Alignment.LEADING)
-            .addComponent(lblBwBit)
-            .addGroup(gl_propertiesPane.createSequentialGroup()
-              .addGroup(gl_propertiesPane.createParallelGroup(Alignment.TRAILING, false)
-                .addComponent(lblWidth, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                .addComponent(lblHeight, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, 90, Short.MAX_VALUE)
-                .addComponent(lblColors, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-              .addPreferredGap(ComponentPlacement.UNRELATED)
-              .addGroup(gl_propertiesPane.createParallelGroup(Alignment.LEADING)
-                .addComponent(txtWidth, GroupLayout.PREFERRED_SIZE, 72, GroupLayout.PREFERRED_SIZE)
-                .addComponent(txtHeight, GroupLayout.PREFERRED_SIZE, 72, GroupLayout.PREFERRED_SIZE)
-                .addComponent(txtNumColors, GroupLayout.PREFERRED_SIZE, 72, GroupLayout.PREFERRED_SIZE))))
-          .addGap(68))
-        .addGroup(gl_propertiesPane.createSequentialGroup()
-          .addContainerGap()
-          .addGroup(gl_propertiesPane.createParallelGroup(Alignment.LEADING)
-            .addComponent(lblSize)
-            .addComponent(cbTransparent)
-            .addComponent(cbGrayScale)
-            .addGroup(gl_propertiesPane.createSequentialGroup()
-              .addComponent(lblTransparentPixelColor)
-              .addGap(4)
-              .addGroup(gl_propertiesPane.createParallelGroup(Alignment.LEADING, false)
-                .addComponent(btnTransColor, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                .addComponent(txtImageSize, GroupLayout.PREFERRED_SIZE, 85, GroupLayout.PREFERRED_SIZE)))
-//            .addComponent(lblDepth)
-            .addGroup(gl_propertiesPane.createSequentialGroup()
-              .addComponent(lblBwBit)
-              .addPreferredGap(ComponentPlacement.UNRELATED)
-              .addComponent(txtBwFactor)
-              .addPreferredGap(ComponentPlacement.RELATED)
-              .addGroup(gl_propertiesPane.createParallelGroup(Alignment.LEADING)
-                .addGroup(gl_propertiesPane.createSequentialGroup()
-                  .addComponent(lblDummy)
-                  .addPreferredGap(ComponentPlacement.RELATED)
-                  .addComponent(lblDummy))
-                .addGroup(gl_propertiesPane.createParallelGroup(Alignment.TRAILING, false)
-//                  .addComponent(txtBwFactor, Alignment.LEADING)
-                  .addComponent(txtNumColors, Alignment.LEADING, 72, 72, Short.MAX_VALUE)))))
-          .addContainerGap(19, Short.MAX_VALUE))
-    );
-    gl_propertiesPane.setVerticalGroup(
-      gl_propertiesPane.createParallelGroup(Alignment.LEADING)
-        .addGroup(gl_propertiesPane.createSequentialGroup()
-          .addGap(7)
-          .addComponent(lblFileOptions)
-          .addPreferredGap(ComponentPlacement.UNRELATED)
-          .addGroup(gl_propertiesPane.createParallelGroup(Alignment.BASELINE)
-            .addComponent(lblOutputFile)
-            .addComponent(txtOutputFile, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
-          .addPreferredGap(ComponentPlacement.UNRELATED)
-          .addGroup(gl_propertiesPane.createParallelGroup(Alignment.BASELINE)
-            .addComponent(lblCArray)
-            .addComponent(txtCArray, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
-          .addPreferredGap(ComponentPlacement.UNRELATED)
-          .addComponent(cbCArrayFlash)
-          .addGap(3)
-          .addComponent(cbLittleEndian)
-          .addPreferredGap(ComponentPlacement.RELATED)
-          .addComponent(lblDummy)
-          .addGap(17)
-          .addComponent(lblBMPOptions)
-          .addPreferredGap(ComponentPlacement.UNRELATED)
-          .addGroup(gl_propertiesPane.createParallelGroup(Alignment.TRAILING)
-            .addGroup(gl_propertiesPane.createParallelGroup(Alignment.BASELINE)
-              .addComponent(lblHeight)
-              .addComponent(txtHeight, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
-            .addGroup(gl_propertiesPane.createSequentialGroup()
-              .addGroup(gl_propertiesPane.createParallelGroup(Alignment.BASELINE)
-                .addComponent(lblWidth)
-                .addComponent(txtWidth, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
-              .addGap(27)))
-          .addPreferredGap(ComponentPlacement.RELATED)
-          .addGroup(gl_propertiesPane.createParallelGroup(Alignment.BASELINE)
-            .addComponent(lblColors)
-            .addComponent(txtNumColors, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
-//          .addPreferredGap(ComponentPlacement.UNRELATED)
-//          .addGroup(gl_propertiesPane.createParallelGroup(Alignment.BASELINE)
-//            .addComponent(lblBwBit, GroupLayout.PREFERRED_SIZE,  GroupLayout.PREFERRED_SIZE, GroupLayout.PREFERRED_SIZE)
-//            .addGap(30)
-//           .addComponent(txtBwFactor, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
-//          .addPreferredGap(ComponentPlacement.RELATED, 7, Short.MAX_VALUE)
-//          .addComponent(lblBwBit)
-          .addPreferredGap(ComponentPlacement.UNRELATED)
-          .addGroup(gl_propertiesPane.createParallelGroup(Alignment.BASELINE)
-            .addComponent(lblBwBit)
-            .addGap(30)
-            .addComponent(txtBwFactor))
-//            .addComponent(lblDummy)
- //           .addComponent(lblDummy))
-          .addPreferredGap(ComponentPlacement.UNRELATED)
-          .addComponent(cbGrayScale)
-          .addPreferredGap(ComponentPlacement.UNRELATED)
-          .addComponent(cbTransparent)
-          .addPreferredGap(ComponentPlacement.UNRELATED)
-          .addGroup(gl_propertiesPane.createParallelGroup(Alignment.BASELINE)
-            .addComponent(lblTransparentPixelColor)
-            .addComponent(btnTransColor, GroupLayout.PREFERRED_SIZE, 21, GroupLayout.PREFERRED_SIZE))
-          .addPreferredGap(ComponentPlacement.RELATED)
-          .addGroup(gl_propertiesPane.createParallelGroup(Alignment.LEADING)
-            .addComponent(lblSize)
-            .addComponent(txtImageSize, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
-          .addGap(58))
-    );
-    propertiesPane.setLayout(gl_propertiesPane);
-
   }
   
   /**
@@ -772,12 +401,14 @@ public class ImageApp implements ActionListener {
         name = name + ".bmp";
       file = new File(name);
       try {
-        imageUtils.image2File(biConvertedImage, file);
+        imageUtils.image2File(biConvertedImage, 
+            file, 
+            (biOriginalImage.getType() == BufferedImage.TYPE_BYTE_BINARY));
         result = true;
-        JOptionPane.showMessageDialog(null, "Successful save of " + sOutputName + ".bmp", 
+        JOptionPane.showMessageDialog(null, "Successful save of " + name, 
             "Save BMP", JOptionPane.INFORMATION_MESSAGE);
       } catch (IOException e) {
-        JOptionPane.showMessageDialog(null, "Unsuccessful save of " + sOutputName + ".bmp", 
+        JOptionPane.showMessageDialog(null, "Unsuccessful save of " + name, 
             "Save BMP", JOptionPane.ERROR_MESSAGE);
       }
     } 
@@ -788,30 +419,35 @@ public class ImageApp implements ActionListener {
    * Read image.
    */
   public void readImage() {
-    cbLittleEndian.setSelected(true);
-//    cbTargetGuislice.setSelected(true);
-    cbCArrayFlash.setSelected(true);
-    cbGrayScale.setSelected(false);
-    cbTransparent.setSelected(false);
+    optionsPane.cbLittleEndian.setSelected(true);
+    optionsPane.cbCArrayFlash.setSelected(true);
     
-    bIsTransparent = false;
+    bTransparentChange = false;
     buildNames(imageFile.getName());
-    txtOutputFile.setText(sOutputName);
+    optionsPane.txtOutputFile.setText(sOutputName);
     sCArrayName = sOutputName.replaceAll("[^A-Za-z0-9()\\[\\]]", "_");
-    txtCArray.setText(sCArrayName);
+    optionsPane.txtCArray.setText(sCArrayName);
     try {
       biOriginalImage = ImageIO.read(imageFile);
-      biConvertedImage = imageUtils.convertTo24(biOriginalImage, bIsTransparent);
-      cbTransparent.setEnabled(true);
-      cbGrayScale.setEnabled(true);
-      origWidth = biOriginalImage.getWidth();
-      origHeight = biOriginalImage.getHeight();
-      scaledWidth = origWidth;
-      scaledHeight = origHeight;
+      biConvertedImage = imageUtils.clone(biOriginalImage);
+      numColors = imageUtils.getNumberOfColors(biConvertedImage);
+      if(biOriginalImage.getType() == BufferedImage.TYPE_BYTE_BINARY
+          || numColors == 2 || numColors == 1) {
+        optionsPane.btnNewForeground.setEnabled(true);
+        optionsPane.btnNewForeground.setVisible(true);
+        optionsPane.lblNewForeground.setVisible(true);
+        Color col= imageUtils.getFGColor();
+        optionsPane.btnCurrentForeground.setBackground(col);
+        optionsPane.lblCurrentForeground.setVisible(true);
+        optionsPane.btnCurrentForeground.setEnabled(true);
+        optionsPane.btnCurrentForeground.setVisible(true);
+      } else {
+        optionsPane.btnTransColor.setEnabled(true);
+        optionsPane.btnTransColor.setVisible(true);
+        optionsPane.lblTransparentPixelColor.setVisible(true);
+      }
       updateProperties();
-      // save this image and use as base for all other conversions
-      biInputImage = imageUtils.clone(biConvertedImage);  
-    } catch (IOException e) {
+    } catch (Exception e) {
       // TODO Auto-generated catch block
       e.printStackTrace();
     }
@@ -848,39 +484,36 @@ public class ImageApp implements ActionListener {
    * Update properties.
    */
   public void updateProperties() {
-    long nCols = imageUtils.getCurrentColors();
-    txtNumColors.setValue(nCols);
-    txtWidth.setValue(Integer.valueOf(biConvertedImage.getWidth()));
-    txtHeight.setValue(Integer.valueOf(biConvertedImage.getHeight()));
-    bpp = imageUtils.getBitDepth();
-/*
-    switch (bpp) {
-      case 1:
-        rb1Bit.setSelected(true);
-        break;
-      case 4:
-        rb4Bit.setSelected(true);
-        break;
-      case 8:
-        rb8Bit.setSelected(true);
-        break;
-      case 16:
-        rb16Bit.setSelected(true);
-        break;
-    }
-*/
-    ByteArrayOutputStream tmp = new ByteArrayOutputStream();
-    try {
-      ImageIO.write(biConvertedImage, "bmp", tmp);
-      tmp.close();
-    } catch (IOException e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
-    }
-    Integer contentLength = tmp.size();
-    txtImageSize.setValue(contentLength);
+    numColors = imageUtils.getNumberOfColors(biConvertedImage);
+    optionsPane.txtNumColors.setValue(numColors);
+    optionsPane.txtWidth.setValue(Integer.valueOf(biConvertedImage.getWidth()));
+    optionsPane.txtHeight.setValue(Integer.valueOf(biConvertedImage.getHeight()));
 
     imagePane.repaint();
+  }
+  
+  /**
+   * getTransparentColor
+   * @return
+   */
+  public static Color getTransparentColor() {
+    return transparentColor;
+  }
+  
+  /**
+   * getCurrentForeground
+   * @return
+   */
+  public static Color getCurrentForeground() {
+    return imageUtils.getFGColor();
+  }
+  
+  /**
+   * getNewForeground
+   * @return
+   */
+  public static Color getNewForeground() {
+    return imageUtils.getMonochromeColor();
   }
   
   /**
@@ -901,9 +534,15 @@ public class ImageApp implements ActionListener {
         + " and/or save as BMP in format supported by GUIslice API\n\n"
         + PROGRAM_TITLE
         + " ver " + VERSION +"\n" 
-        + "Copyright (c) 2020 Paul Conti\n"
-        + "GUIslice CopyRight (c) Calvin Hass 2016-2020"
+        + "Copyright (c) 2021-2022 Paul Conti\n"
+        + "GUIslice CopyRight (c) Calvin Hass 2016-2022"
         , "About Image2C", JOptionPane.INFORMATION_MESSAGE);
+        break;
+        
+      case "carray":
+        sCArrayName = optionsPane.txtCArray.getText();
+        sCArrayName = sCArrayName.replaceAll("[^A-Za-z0-9()\\[\\]]", "_");
+        optionsPane.txtCArray.setText(sCArrayName);
         break;
     
       case "open":
@@ -911,75 +550,42 @@ public class ImageApp implements ActionListener {
         if (imageFile == null) break;
         frameTitle = PROGRAM_TITLE + " - " + imageFile.getName();
         frame.setTitle(frameTitle);
+        optionsPane.lblTransparentPixelColor.setVisible(false);
+        optionsPane.btnTransColor.setEnabled(false);
+        optionsPane.btnTransColor.setVisible(false);
+        optionsPane.lblCurrentForeground.setVisible(false);
+        optionsPane.btnCurrentForeground.setEnabled(false);
+        optionsPane.btnCurrentForeground.setVisible(false);
+        optionsPane.lblNewForeground.setVisible(false);
+        optionsPane.btnNewForeground.setEnabled(false);
+        optionsPane.btnNewForeground.setVisible(false);
+
         readImage();
         break;
-/*        
-      case "convert1bit":
-        if (biInputImage != null) {
-          try {
-            ((JFormattedTextField) txtBwFactor).commitEdit();
-          } catch (ParseException e1) {
-            // TODO Auto-generated catch block
-            e1.printStackTrace();
-          }
-          bwfactor = (Float) ((Double)txtBwFactor.getValue()).floatValue();
-          biConvertedImage = imageUtils.convertTo1(biInputImage, bwfactor);
-          updateProperties();
-        }
+        
+      case "outputfile":
+        sOutputName = optionsPane.txtOutputFile.getText();
         break;
-      
-      case "convert4bit":
-        if (biInputImage != null) {
-          tmpImage = imageUtils.convertTo4(biInputImage);
-          if (tmpImage != null) {
-            biConvertedImage = tmpImage;
-          } else {
-            JOptionPane.showMessageDialog(null, "Sorry, unable to reduce image further.", 
-                "Failure", JOptionPane.WARNING_MESSAGE);
-          }
-          updateProperties();
-        }
-        break;
-      
-      case "convert8bit":
-        if (biInputImage != null) {
-          tmpImage = imageUtils.convertTo8(biInputImage);
-          if (tmpImage != null) {
-            biConvertedImage = tmpImage;
-          } else {
-            JOptionPane.showMessageDialog(null, "Sorry, unable to reduce image further.", 
-                "Failure", JOptionPane.WARNING_MESSAGE);
-          }
-          updateProperties();
-        }
-        break;
-      
-      case "convert16bit":
-        if (biInputImage != null) {
-          biConvertedImage = imageUtils.convertTo16(biInputImage, bIsTransparent);
-          updateProperties();
-        }
-        break;
-*/      
+
       case "exit":
         System.exit(0);
         break;
         
       case "export":
         try {
-          ((JFormattedTextField) txtOutputFile).commitEdit();
-          sOutputName = txtOutputFile.getText();
-          ((JFormattedTextField) txtCArray).commitEdit();
-          sCArrayName = txtCArray.getText();
+          ((JFormattedTextField) optionsPane.txtOutputFile).commitEdit();
+          sOutputName = optionsPane.txtOutputFile.getText();
+          ((JFormattedTextField) optionsPane.txtCArray).commitEdit();
+          sCArrayName = optionsPane.txtCArray.getText();
           sCArrayName = sCArrayName.replaceAll("[^A-Za-z0-9()\\[\\]]", "_");
           String sName = sOutputPath + sOutputName;
           if (!(sName.toLowerCase().endsWith(".c")))
             sName = sName + ".c";
           File file = new File(sName);
-          boolean bUseLittleEndian = cbLittleEndian.isSelected();
-          boolean bCArrayFlash = cbCArrayFlash.isSelected();
+          boolean bUseLittleEndian = optionsPane.cbLittleEndian.isSelected();
+          boolean bCArrayFlash = optionsPane.cbCArrayFlash.isSelected();
           imageUtils.image2C_Array(biConvertedImage, sInputName, file, sCArrayName, sInputExt,
-              bUseLittleEndian, bCArrayFlash);
+              bUseLittleEndian, bCArrayFlash, bTransparentChange);
           JOptionPane.showMessageDialog(null, "Successful export of " + sOutputName + ".c", 
               "Export Image", JOptionPane.INFORMATION_MESSAGE);
         } catch (IOException e1) {
@@ -988,13 +594,6 @@ public class ImageApp implements ActionListener {
         } catch (ParseException e1) {
           // TODO Auto-generated catch block
           e1.printStackTrace();
-        }
-        break;
-        
-      case "grayscale":
-        if (biInputImage != null) {
-          biConvertedImage = imageUtils.grayscale(biInputImage);
-          updateProperties();
         }
         break;
         
@@ -1026,29 +625,49 @@ public class ImageApp implements ActionListener {
         
       case "transcolor":
         transparentColor = cc.showDialog(transparentColor);
-        btnTransColor.setBackground(transparentColor);
-        propertiesPane.repaint();
+        imageUtils.setTransparentPixelColor(transparentColor);
+        optionsPane.btnTransColor.setBackground(transparentColor);
+        optionsPane.repaint();
         break;
         
+      case "current_color":
+//        Color col= cc.showDialog(getCurrentForeground());
+        Color col = imageUtils.swapFG();
+        optionsPane.btnCurrentForeground.setBackground(col);
+//        imageUtils.setFGColor(col);
+        optionsPane.repaint();
+        break;
+
+      case "new_color":
+        Color ncol = cc.showDialog(getNewForeground());
+        optionsPane.btnNewForeground.setBackground(ncol);
+        imageUtils.setMonochromeColor(ncol);
+        optionsPane.repaint();
+/*
+        if (biOriginalImage != null) {
+          biConvertedImage = imageUtils.convertForegroundColor(biOriginalImage, imageUtils.getNewForegroundColor());
+          updateProperties();
+        }
+*/
+        break;
+/*        
       case "transparent":
-        if (cbTransparent.isSelected()) {
-          bIsTransparent = true;
+        if (optionsPane.cbTransparent.isSelected()) {
+          bTransparentChange = true;
           imageUtils.setTransparentPixelColor(transparentColor);
         } else {
-          bIsTransparent = false;
+          bTransparentChange = false;
         }
         if (biOriginalImage != null) {
-          biConvertedImage = imageUtils.convertTo24(biOriginalImage, bIsTransparent);
+          biConvertedImage = imageUtils.convertTo24(biOriginalImage, bTransparentChange);
           updateProperties();
         }
         break;
-        
+*/        
       case "undo":
         if (biOriginalImage != null) {
           // restore to the original image user opened
-          biConvertedImage = imageUtils.convertTo24(biOriginalImage, bIsTransparent);
-          // save this image and use as base for all other conversions
-          biInputImage = imageUtils.clone(biConvertedImage);  
+          biConvertedImage = imageUtils.clone(biOriginalImage);
           updateProperties();
         }
         
