@@ -11,8 +11,6 @@ for GUIslice API.</p>
 
 <p>Input images can be in BMP, PNG, JPG, or GIF formats.</p>
 
-<p>However, the utility cannot support BMP files using 32 bit format due to issues with the Java runtime. </p>
-
 <p>The generated output code (.c) will contain the imported image as a C Array that can be included in your 
 projects. These files may be used directly by the GUIslice_Builder for inclusion into your projects. 
 You can refer to GUIslice/examples/arduino/ex28_ard_btn_img_flash for a sample application using C arrays 
@@ -37,7 +35,7 @@ since it only requires two bytes per pixel.
 
 #### Transparent Images
 
-<p>Transparent images are only supported by PNG files. The typical TFT screens we hobbist use only support 
+<p>Transparent images are only supported by PNG files and BMP with 32 bit color. The typical TFT screens we hobbist use only support 
 16 bit pixels which requires the Alpha channel (transparency) to be removed along with a reduction 
 in the possible number of supported colors.</p>
 
@@ -66,10 +64,10 @@ which is background. This program will first determine the number of colors used
 as your Foreground color. Nothing more for you to do.</p>
 
 <p>If two colors are found it will grab the first one it finds and make it the foreground and present it to you in 
-the Foreground color box.  If we guessed incorrectly or you want an inverse image then simply click the 
+the Foreground color box.  If utility guessed incorrectly or you want an inverse image then simply click the 
 foreground color button and it will be exchanged with the second color found.</>
 
-<P> Again only for Monochrome images the default color output for your C array will be white. This will be shown in the
+<P> Now only for Monochrome images the default color output for your C array will be white. This will be shown in the
 Monochrome Output button. You may override this color by pressing this button and a color chooser will appear.
 This is only needed when or if you are going to override the current color.</p>
 
