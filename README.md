@@ -33,6 +33,29 @@ per pixel consuming more RAM memory and which would need more time to transmit. 
 since it only requires two bytes per pixel.
 </p>
 
+### GUIslice API issues
+
+The current GUIslice API has not be updated to handle 1 bit monochrome images without crashing.
+
+You can use my respository for the patches.
+https://github.com/Pconti31/GUIslice/tree/pconti-DRAWMONO-FIX
+
+The outstanding pull request is:
+https://github.com/ImpulseAdventure/GUIslice/pull/456
+
+### GUIslice_BUilder issues
+
+You must mark in the image's property view if an image is transparent otherwise GUIslice API will output a white background.
+```
+Transparent? = true
+```
+If you are using a 1 bit image C file you must set the format property in its property view correctly or a crash will occur.
+```
+Image Format = GSLC_IMGREF_FMT_RAW1
+```
+The default is 24 bit color which will crash your application.
+
+
 #### Transparent Images
 
 <p>Transparent images are only supported by PNG files and BMP with 32 bit color. The typical TFT screens we hobbist use only support 
@@ -75,6 +98,11 @@ This is only needed when or if you are going to override the current color.</p>
 
 <p>You should also realize that 8 bit MCU like Arduino UNO and Mega can only address within a 16-bit 
 range so arrays larger then 65kb will not load.  There likely will be size limitations with other MCUs.</P>
+
+### Bug fixes for 2.01
+
+ - Issue 5 v2.00 c-array not correct on one- & two color pictures
+
 
 ### Enhancement for 2.00
 

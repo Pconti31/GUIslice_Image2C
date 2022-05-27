@@ -189,6 +189,7 @@ public class ImageUtils {
   }
   
   public BufferedImage convertTo1(BufferedImage inputImage) {
+
     int nWidth = inputImage.getWidth();
     int nHeight = inputImage.getHeight();
     // create our two indexed color map
@@ -214,14 +215,19 @@ public class ImageUtils {
     int w = inputImage.getWidth(), h = inputImage.getHeight();
     int length = (w * h);
 
-    byte[] data = new byte[length];
-    DataBuffer db = new DataBufferByte(data, length);
-    WritableRaster wr = Raster.createPackedRaster(db, w, h, 1, null);
-    BufferedImage blackwhiteImage = new BufferedImage(colorMap, wr, false, null);
+//    byte[] data = new byte[length];
+//    DataBuffer db = new DataBufferByte(data, length);
+//    WritableRaster wr = Raster.createPackedRaster(db, w, h, 1, null);
+//    BufferedImage blackwhiteImage = new BufferedImage(colorMap, wr, false, null);
+    BufferedImage blackwhiteImage = new BufferedImage(w, h, BufferedImage.TYPE_BYTE_BINARY, colorMap);
+//    BufferedImage blackwhiteImage = new BufferedImage(w, h, BufferedImage.CUSTOM);
+    ColorConvertOp op = new ColorConvertOp(ColorSpace.getInstance(ColorSpace.CS_GRAY), null);
+      op.filter(inputImage, blackwhiteImage);
 
     // packs the input image to the output image
     Graphics2D g2d = blackwhiteImage.createGraphics();
     g2d.drawImage(inputImage, 0, 0, colTransparent, null);
+//    g2d.drawImage(inputImage, 0, 0, null);
     g2d.dispose();
 
     return blackwhiteImage;
@@ -474,8 +480,8 @@ public class ImageUtils {
   {
     int arraySz;
     try {
-    if( nCurrentColors < 3 && inputImage.getType() != BufferedImage.TYPE_BYTE_BINARY) {
-//       BufferedImage image = convertTo24(inputImage, true);
+
+      if( nCurrentColors < 3 && inputImage.getType() != BufferedImage.TYPE_BYTE_BINARY) {
        BufferedImage blackWhite = convertTo1(inputImage);
        DataBufferByte data = (DataBufferByte) blackWhite.getRaster().getDataBuffer();
        bmpByteArray = data.getData();
@@ -641,13 +647,13 @@ public class ImageUtils {
       if (bmpBpp == 1) {
         line = String.format("const unsigned char %s[%d+7] GSLC_PMEM = {\n", arrayName, arraySz);
       } else {
-        line = String.format("const unsigned short %s[%d+2] GSLC_PMEM = {\n", arrayName, arraySz);
+        line = String.format("const unsigned short %s[%d+2] GSLC_PMEM = {\n", arrayName, arraySz/2);
       }
     } else {
       if (bmpBpp == 1) {
         line = String.format("const unsigned char %s[%d+5] = {\n", arrayName, arraySz);
       } else {
-        line = String.format("const unsigned short %s[%d+2] = {\n", arrayName, arraySz);
+        line = String.format("const unsigned short %s[%d+2] = {\n", arrayName, arraySz/2);
       }
     }
     fOut.writeString(line);
@@ -670,11 +676,11 @@ public class ImageUtils {
        * the foreground color to be output as
        * red, green, and blue
        */
-      line = String.format("%03d, // red color\n",colCurrentFG.getRed());
+      line = String.format("%3d, // red color\n",colCurrentFG.getRed());
       fOut.writeString(line);
-      line = String.format("%03d, // green color\n",colCurrentFG.getGreen());
+      line = String.format("%3d, // green color\n",colCurrentFG.getGreen());
       fOut.writeString(line);
-      line = String.format("%03d, // blue color\n",colCurrentFG.getBlue());
+      line = String.format("%3d, // blue color\n",colCurrentFG.getBlue());
       fOut.writeString(line);
       // Our header is completed so now do the bitmap image
       fOut.streamArray(bmpByteArray);
