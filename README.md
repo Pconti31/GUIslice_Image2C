@@ -50,8 +50,8 @@ This can create a desktop icon you can click on to run.  Optionally, you can use
 
 Download the image2c-{opsys}-{arch}.{release}.{build}.tar.gz using 
 operating system and cpu architecture (ie., linux-x64) from github
-GUIslice-Builder Releases:
-https://github.com/ImpulseAdventure/GUIslice-Builder/releases
+GUIslice_Image2C Releases:
+https://github.com/Pconti31/GUIslice_Image2C/releases
 
 untar into your home directory.
 
