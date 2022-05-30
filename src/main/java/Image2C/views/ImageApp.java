@@ -2,7 +2,7 @@
  *
  * The MIT License
  *
- * Copyright 2020-2022 Paul Conti
+ * Copyright 2018-2022 Paul Conti
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,11 +23,13 @@
  * THE SOFTWARE.
  *
  */
-package Image2C.views;
+package image2C.views;
 
 import java.awt.EventQueue;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
@@ -40,6 +42,7 @@ import javax.swing.JOptionPane;
 import javax.swing.JMenu;
 import javax.swing.JToolBar;
 import javax.swing.SwingUtilities;
+import javax.swing.WindowConstants;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -58,7 +61,7 @@ import java.awt.Graphics2D;
 
 import javax.swing.filechooser.FileFilter;
 
-import Image2C.common.ImageUtils;
+import image2C.common.ImageUtils;
 
 import javax.swing.JFormattedTextField;
 import javax.swing.JFileChooser;
@@ -88,7 +91,7 @@ public class ImageApp implements ActionListener {
   public static final String PROGRAM_TITLE = "GUIslice Image2C";
   
   /** The Constant VERSION is our application version number. */
-  public static final String VERSION = "2.01";
+  public static final String VERSION = "2.02";
 
   /** The Constant VERSION_NO is for save and restore of user preferences. */
   public static final String VERSION_NO = "-1";
@@ -144,6 +147,9 @@ public class ImageApp implements ActionListener {
   /** The options pane. */
   private OptionsPanel optionsPane;
   
+  /** Our foreground color */
+  private Color nColFG;
+  
   /** The cc. */
   private ColorChooser cc;
   
@@ -160,6 +166,17 @@ public class ImageApp implements ActionListener {
           ThemeManager.loadThemes();
           ThemeManager.getDefaultLookAndFeel();
           ImageApp window = new ImageApp();
+          window.frame.addWindowListener(new WindowAdapter() {
+            public void windowClosing(WindowEvent we) {
+              String title = "Confirm Dialog";
+              String message = "You're about to quit the application -- are you sure?";
+              int answer = JOptionPane.showConfirmDialog(null,message,title, JOptionPane.YES_NO_OPTION); 
+              if(answer == JOptionPane.YES_OPTION) {
+                System.exit(0);
+              } else
+                window.frame.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
+            }
+          });
           window.frame.setLocationRelativeTo(null);
           window.frame.setVisible(true);
         } catch (Exception e) {
@@ -436,8 +453,10 @@ public class ImageApp implements ActionListener {
         optionsPane.btnNewForeground.setEnabled(true);
         optionsPane.btnNewForeground.setVisible(true);
         optionsPane.lblNewForeground.setVisible(true);
-        Color col= imageUtils.getFGColor();
-        optionsPane.btnCurrentForeground.setBackground(col);
+        nColFG = imageUtils.getFGColor();
+        optionsPane.btnNewForeground.setBackground(nColFG);
+        optionsPane.btnCurrentForeground.setBackground(nColFG);
+        imageUtils.setMonochromeColor(nColFG);
         optionsPane.lblCurrentForeground.setVisible(true);
         optionsPane.btnCurrentForeground.setEnabled(true);
         optionsPane.btnCurrentForeground.setVisible(true);
@@ -631,17 +650,18 @@ public class ImageApp implements ActionListener {
         break;
         
       case "current_color":
-//        Color col= cc.showDialog(getCurrentForeground());
-        Color col = imageUtils.swapFG();
-        optionsPane.btnCurrentForeground.setBackground(col);
-//        imageUtils.setFGColor(col);
+        nColFG = imageUtils.swapFG();
+        optionsPane.btnCurrentForeground.setBackground(nColFG);
+        optionsPane.btnNewForeground.setBackground(nColFG);
+        imageUtils.setFGColor(nColFG);
+        imageUtils.setMonochromeColor(nColFG);
         optionsPane.repaint();
         break;
 
       case "new_color":
-        Color ncol = cc.showDialog(getNewForeground());
-        optionsPane.btnNewForeground.setBackground(ncol);
-        imageUtils.setMonochromeColor(ncol);
+        nColFG = cc.showDialog(getNewForeground());
+        optionsPane.btnNewForeground.setBackground(nColFG);
+        imageUtils.setMonochromeColor(nColFG);
         optionsPane.repaint();
 /*
         if (biOriginalImage != null) {

@@ -2,7 +2,7 @@
  *
  * The MIT License
  *
- * Copyright 2018-2020 Paul Conti
+ * Copyright 2018-2022 Paul Conti
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,7 +23,7 @@
  * THE SOFTWARE.
  *
  */
-package Image2C.views;
+package image2C.views;
 
 import java.awt.AWTException;
 //import java.awt.BorderLayout;
@@ -43,7 +43,7 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
-import Image2C.common.ColorIcon;
+import image2C.common.ColorIcon;
 
 import java.awt.Dimension;
 

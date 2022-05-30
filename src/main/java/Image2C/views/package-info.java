@@ -1,1 +1,1 @@
-package Image2C.views;
+package image2C.views;

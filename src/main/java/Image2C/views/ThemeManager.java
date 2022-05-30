@@ -2,7 +2,7 @@
 *
 * The MIT License
 *
-* Copyright 2018-2020 Paul Conti
+* Copyright 2018-2022 Paul Conti
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -24,7 +24,7 @@
 *
 */
 
-package Image2C.views;
+package image2C.views;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -44,7 +44,10 @@ import com.formdev.flatlaf.FlatDarkLaf;
 import com.formdev.flatlaf.FlatIntelliJLaf;
 import com.formdev.flatlaf.FlatLightLaf;
 
-import Image2C.common.ThemeInfo;
+import com.formdev.flatlaf.intellijthemes.FlatAllIJThemes;
+import com.formdev.flatlaf.intellijthemes.FlatAllIJThemes.FlatIJLookAndFeelInfo;
+
+import image2C.common.ThemeInfo;
 
 public class ThemeManager {
 
@@ -80,13 +83,11 @@ public class ThemeManager {
     String prefNode = MY_NODE + ImageApp.VERSION_NO;
     fPrefs = Preferences.userRoot().node(prefNode);
     System.setErr(System.err);  
-    defLafClassName = fPrefs.get(THEME_KEY, "Flat IntelliJ");
+    defLafClassName = fPrefs.get(THEME_KEY, "Arc Dark (Material)");
     themes = new ArrayList<ThemeInfo>();
-    // add Flat LAF first
-    themes.add( new ThemeInfo( "Flat Light"   , null, FlatLightLaf.class.getName() ) );
-    themes.add( new ThemeInfo( "Flat Dark"    , null, FlatDarkLaf.class.getName() ) );
-    themes.add( new ThemeInfo( "Flat IntelliJ", null, FlatIntelliJLaf.class.getName() ) );
-    themes.add( new ThemeInfo( "Flat Darcula" , null, FlatDarculaLaf.class.getName() ) );
+//    for (int i=0; i<themeList.length; i++) {
+//      themes.add( new ThemeInfo( themeList[i][0] , null, themeList[i][1]) );
+//    }
     
     // add system look an feels
     for (LookAndFeelInfo look_and_feel : UIManager.getInstalledLookAndFeels()) {
@@ -95,6 +96,18 @@ public class ThemeManager {
       themes.add(new ThemeInfo(look_and_feel.getName(),
         null, look_and_feel.getClassName()));
     }
+
+    // add Flat LAF 
+    themes.add( new ThemeInfo( "Flat Light"   , null, FlatLightLaf.class.getName() ) );
+    themes.add( new ThemeInfo( "Flat Dark"    , null, FlatDarkLaf.class.getName() ) );
+    themes.add( new ThemeInfo( "Flat IntelliJ", null, FlatIntelliJLaf.class.getName() ) );
+    themes.add( new ThemeInfo( "Flat Darcula" , null, FlatDarculaLaf.class.getName() ) );
+   
+    // add intellij themes next
+    for (FlatIJLookAndFeelInfo info : FlatAllIJThemes.INFOS) {
+      themes.add( new ThemeInfo( info.getName() , null, info.getClassName()) );
+    }
+    
   }
 
   public static void getDefaultLookAndFeel() {

@@ -2,7 +2,7 @@
  *
  * The MIT License
  *
- * Copyright 2019-2020 Paul Conti
+ * Copyright 2018-2022 Paul Conti
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,7 +23,7 @@
  * THE SOFTWARE.
  *
  */
-package Image2C.views;
+package image2C.views;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
@@ -32,7 +32,6 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.beans.*;
 import java.io.File;
-import java.io.IOException;
  
 /**
  * The Class ImagePreviewPanel implements an extension to JFileChooser 
@@ -107,9 +106,10 @@ public class ImagePreviewPanel extends JPanel implements PropertyChangeListener 
                   image = ImageIO.read(new File(imageName));
                   scaleImage();
                   repaint();
-                } catch (IOException e1) {
-//                  e1.printStackTrace();
-                  // do nothing
+                } catch (Exception e1) {
+                  JOptionPane.showMessageDialog(null, e1.toString(), 
+                      "Error", JOptionPane.ERROR_MESSAGE);
+                  repaint();
                 } 
               }
             }
