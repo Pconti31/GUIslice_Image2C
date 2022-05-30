@@ -1,2 +1,9 @@
 #!/bin/sh
-java -jar guislice_image2c-1.04.jar $@&
+SCRIPT_NAME=$(basename "$0")
+APP_NAME=${SCRIPT_NAME%.sh}
+
+DIR="${0%/*}"
+
+
+
+"$DIR/bin/java" $CDS_JVM_OPTS  -p "$DIR/../app" -m image2C/image2C.views.ImageApp  "$@"

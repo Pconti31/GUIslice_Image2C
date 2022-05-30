@@ -2,7 +2,7 @@
  *
  * The MIT License
  *
- * Copyright 2018-2022 Paul Conti
+ * Copyright 2022 Paul Conti
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,19 +23,10 @@
  * THE SOFTWARE.
  *
  */
-package image2C.common;
-
-import java.io.File;
-
-public class ThemeInfo {
-  public final String name;
-  public final File themeFile;
-  public final String lafClassName;
-  
-  public ThemeInfo( String name, File themeFile, String lafClassName ) {
-    this.name = name;
-    this.themeFile = themeFile;
-    this.lafClassName = lafClassName;
-  }
-  
-}
+/**
+ * Provides support for main class of the application
+ * 
+ * @author Paul Conti
+ * 
+ */
+package image2C;

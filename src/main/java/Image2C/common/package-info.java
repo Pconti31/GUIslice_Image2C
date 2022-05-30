@@ -1,1 +1,1 @@
-package Image2C.common;
+package image2C.common;

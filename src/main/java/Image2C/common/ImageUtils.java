@@ -2,7 +2,7 @@
  *
  * The MIT License
  *
- * Copyright 2020-2022 Paul Conti
+ * Copyright 2018-2022 Paul Conti
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,7 +23,7 @@
  * THE SOFTWARE.
  *
  */
-package Image2C.common;
+package image2C.common;
 
 import java.awt.Color;
 import java.awt.Graphics2D;
@@ -195,15 +195,16 @@ public class ImageUtils {
     // create our two indexed color map
     Color colTransparent;
     int[] palette = new int[2];
-    if (colCurrentFG.getRGB() == Color.BLACK.getRGB()) {
-      colTransparent = Color.WHITE;
-      palette[0] = Color.WHITE.getRGB();
-      palette[1] = colCurrentFG.getRGB();
-    } else {
+    if (colCurrentFG.getRGB() == Color.WHITE.getRGB()) {
       colTransparent = Color.BLACK;
       palette[0] = Color.BLACK.getRGB();
       palette[1] = colCurrentFG.getRGB();
+    } else {
+      colTransparent = Color.WHITE;
+      palette[0] = Color.WHITE.getRGB();
+      palette[1] = colCurrentFG.getRGB();
     }
+    
     IndexColorModel colorMap = new IndexColorModel(
         1,         // bits per pixel
         2,         // size of color component array
@@ -211,7 +212,7 @@ public class ImageUtils {
         0,         // start offset into color map
         DataBuffer.TYPE_BYTE,
         null);
-    
+   
     int w = inputImage.getWidth(), h = inputImage.getHeight();
     int length = (w * h);
 
@@ -676,11 +677,11 @@ public class ImageUtils {
        * the foreground color to be output as
        * red, green, and blue
        */
-      line = String.format("%3d, // red color\n",colCurrentFG.getRed());
+      line = String.format("%3d, // red color\n",colMonochrome.getRed());
       fOut.writeString(line);
-      line = String.format("%3d, // green color\n",colCurrentFG.getGreen());
+      line = String.format("%3d, // green color\n",colMonochrome.getGreen());
       fOut.writeString(line);
-      line = String.format("%3d, // blue color\n",colCurrentFG.getBlue());
+      line = String.format("%3d, // blue color\n",colMonochrome.getBlue());
       fOut.writeString(line);
       // Our header is completed so now do the bitmap image
       fOut.streamArray(bmpByteArray);
