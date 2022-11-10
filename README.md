@@ -138,6 +138,10 @@ range so arrays larger then 65kb will not load.  There likely will be size limit
 
 ## Release History
 
+### Bug fixes for 2.03
+
+Added execute permissions to Java for Linux and MacOS.
+
 ### Enhancements for 2.02
 
 Packaged custom built Java with Image2C and added a Windows installer.
