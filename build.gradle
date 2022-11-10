@@ -15,7 +15,7 @@ repositories {
 mainClassName = 'Image2C.views.ImageApp'
 applicationName = 'GUIslice_Image2C'
 archivesBaseName = 'guislice_image2c'
-project.version = '2.02'
+project.version = '2.03'
 
 processResources { 
      from("src/main/java/") { 
@@ -189,11 +189,11 @@ task pack_LINUX_X64(type: Tar) {
   group = "assemble"
   description = "linux-x64 package distribution"
   from (TARGET_LINUX_X64) {
-   exclude ("**/*.sh") // 1
+   excludes = ["**/*.sh", "**/bin/java"]
    fileMode 0644
   }
   from (TARGET_LINUX_X64) {
-   include ("**/*.sh")
+   includes = ["**/*.sh", "**/bin/java"]
    fileMode 0755
   }
   archiveBaseName = "image2c-" + "linux-x64"
@@ -207,11 +207,11 @@ task pack_LINUX_AARCH64(type: Tar) {
   group = "assemble"
   description = "linux-aarch64 package distribution"
   from (TARGET_LINUX_AARCH64) {
-   exclude ("**/*.sh") // 1
+   excludes = ["**/*.sh", "**/bin/java"]
    fileMode 0644
   }
   from (TARGET_LINUX_AARCH64) {
-   include ("**/*.sh")
+   includes = ["**/*.sh", "**/bin/java"]
    fileMode 0755
   }
   archiveBaseName = "image2c-" + "linux-aarch64"
@@ -225,11 +225,11 @@ task pack_MAC_X64(type: Tar) {
   group = "assemble"
   description = "mac-x64 package distribution"
   from (TARGET_MAC_X64) {
-   exclude ("**/*.sh") // 1
+   excludes = ["**/*.sh", "**/bin/java"]
    fileMode 0644
   }
   from (TARGET_MAC_X64) {
-   include ("**/*.sh")
+   includes = ["**/*.sh", "**/bin/java"]
    fileMode 0755
   }
   archiveBaseName = "image2c-" + "mac-x64"
@@ -243,11 +243,11 @@ task pack_MAC_AARCH64(type: Tar) {
   group = "assemble"
   description = "mac-aarch64 package distribution"
   from (TARGET_MAC_AARCH64) {
-   exclude ("**/*.sh") // 1
+   excludes = ["**/*.sh", "**/bin/java"]
    fileMode 0644
   }
   from (TARGET_MAC_AARCH64) {
-   include ("**/*.sh")
+   includes = ["**/*.sh", "**/bin/java"]
    fileMode 0755
   }
   archiveBaseName = "image2c-" + "mac-aarch64"
