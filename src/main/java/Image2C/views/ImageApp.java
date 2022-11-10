@@ -91,7 +91,7 @@ public class ImageApp implements ActionListener {
   public static final String PROGRAM_TITLE = "GUIslice Image2C";
   
   /** The Constant VERSION is our application version number. */
-  public static final String VERSION = "2.02";
+  public static final String VERSION = "2.03";
 
   /** The Constant VERSION_NO is for save and restore of user preferences. */
   public static final String VERSION_NO = "-1";
