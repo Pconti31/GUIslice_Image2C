@@ -43,6 +43,9 @@ import com.formdev.flatlaf.FlatDarculaLaf;
 import com.formdev.flatlaf.FlatDarkLaf;
 import com.formdev.flatlaf.FlatIntelliJLaf;
 import com.formdev.flatlaf.FlatLightLaf;
+import com.formdev.flatlaf.themes.FlatMacLightLaf;
+import com.formdev.flatlaf.themes.FlatMacDarkLaf;
+import com.formdev.flatlaf.util.SystemInfo;
 
 import com.formdev.flatlaf.intellijthemes.FlatAllIJThemes;
 import com.formdev.flatlaf.intellijthemes.FlatAllIJThemes.FlatIJLookAndFeelInfo;
@@ -61,7 +64,7 @@ public class ThemeManager {
   public static final String THEME_KEY = "THEME_KEY";
 
   /** The Constant MY_NODE. */
-  public static final String MY_NODE = "com/impulseadventure/utilities";
+  public static final String MY_NODE = "com/impulseadventure/utilities_3";
   
   public static String defLafClassName;
   public static int    defLafIndex;
@@ -83,11 +86,12 @@ public class ThemeManager {
     String prefNode = MY_NODE + ImageApp.VERSION_NO;
     fPrefs = Preferences.userRoot().node(prefNode);
     System.setErr(System.err);  
-    defLafClassName = fPrefs.get(THEME_KEY, "Arc Dark (Material)");
+    if( SystemInfo.isMacOS ) {
+      defLafClassName = fPrefs.get(THEME_KEY, "Flat Mac Dark");
+    } else {
+      defLafClassName = fPrefs.get(THEME_KEY, "Flat Dark");
+    }
     themes = new ArrayList<ThemeInfo>();
-//    for (int i=0; i<themeList.length; i++) {
-//      themes.add( new ThemeInfo( themeList[i][0] , null, themeList[i][1]) );
-//    }
     
     // add system look an feels
     for (LookAndFeelInfo look_and_feel : UIManager.getInstalledLookAndFeels()) {
@@ -100,6 +104,9 @@ public class ThemeManager {
     // add Flat LAF 
     themes.add( new ThemeInfo( "Flat Light"   , null, FlatLightLaf.class.getName() ) );
     themes.add( new ThemeInfo( "Flat Dark"    , null, FlatDarkLaf.class.getName() ) );
+    themes.add( new ThemeInfo( "Flat Mac Light"   , null, FlatMacLightLaf.class.getName() ) );
+    themes.add( new ThemeInfo( "Flat Mac Dark"    , null, FlatMacDarkLaf.class.getName() ) );
+
     themes.add( new ThemeInfo( "Flat IntelliJ", null, FlatIntelliJLaf.class.getName() ) );
     themes.add( new ThemeInfo( "Flat Darcula" , null, FlatDarculaLaf.class.getName() ) );
    

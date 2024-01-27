@@ -2,7 +2,7 @@
  *
  * The MIT License
  *
- * Copyright 2018-2022 Paul Conti
+ * Copyright 2018-2024 Paul Conti
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -35,6 +35,7 @@ import java.io.File;
 import java.io.IOException;
 import java.text.ParseException;
 
+
 import javax.swing.JFrame;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
@@ -49,6 +50,7 @@ import java.awt.Color;
 
 import javax.swing.JButton;
 import javax.swing.ImageIcon;
+import javax.swing.JDialog;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.imageio.ImageIO;
@@ -66,6 +68,8 @@ import image2C.common.ImageUtils;
 import javax.swing.JFormattedTextField;
 import javax.swing.JFileChooser;
 import javax.swing.JComboBox;
+
+import com.formdev.flatlaf.util.SystemInfo;
 
 /**
  * The Class ImageApp is the main program for Image2C.
@@ -91,7 +95,7 @@ public class ImageApp implements ActionListener {
   public static final String PROGRAM_TITLE = "GUIslice Image2C";
   
   /** The Constant VERSION is our application version number. */
-  public static final String VERSION = "2.03";
+  public static final String VERSION = "3.00";
 
   /** The Constant VERSION_NO is for save and restore of user preferences. */
   public static final String VERSION_NO = "-1";
@@ -160,6 +164,32 @@ public class ImageApp implements ActionListener {
    *          the arguments
    */
   public static void main(String[] args) {
+    
+    if( SystemInfo.isMacOS ) {
+//      isMAC = true;
+      // enable screen menu bar
+      // (moves menu bar from JFrame window to top of screen)
+      System.setProperty( "apple.laf.useScreenMenuBar", "true" );
+
+      // application name used in screen menu bar
+      // (in first menu after the "apple" menu)
+      System.setProperty( "apple.awt.application.name", "GUIsliceBuilder" );
+
+      // appearance of window title bars
+      // possible values:
+      //   - "system": use current macOS appearance (light or dark)
+      //   - "NSAppearanceNameAqua": use light appearance
+      //   - "NSAppearanceNameDarkAqua": use dark appearance
+      // (needs to be set on main thread; setting it on AWT thread does not work)
+      System.setProperty( "apple.awt.application.appearance", "system" );
+    } else {
+      // Linux or Windows
+      // enable custom window decorations
+      JFrame.setDefaultLookAndFeelDecorated( true );
+      JDialog.setDefaultLookAndFeelDecorated( true );
+    }
+
+    
     EventQueue.invokeLater(new Runnable() {
       public void run() {
         try {
@@ -553,7 +583,7 @@ public class ImageApp implements ActionListener {
         + " and/or save as BMP in format supported by GUIslice API\n\n"
         + PROGRAM_TITLE
         + " ver " + VERSION +"\n" 
-        + "Copyright (c) 2021-2022 Paul Conti\n"
+        + "Copyright (c) 2021-2024 Paul Conti\n"
         + "GUIslice CopyRight (c) Calvin Hass 2016-2022"
         , "About Image2C", JOptionPane.INFORMATION_MESSAGE);
         break;
