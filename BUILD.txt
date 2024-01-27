@@ -6,7 +6,7 @@ Simply follow these instructions after cloning a personal copy of the GUIslice_I
 
 In order to build from source you will need a Java JDK installed. 
 
-The offical build currently uses release 17.3+7 
+The offical build currently uses release jdk-18.0.2.1+1 
   
 You can find OpenJDK releases for jdk and jre here:
 https://adoptium.net/temurin/releases
@@ -17,16 +17,12 @@ so needed system variables are set correctly like, JAVA_HOME.
 Much of the needed toolchain will be auto-detected and downloaded dynamically
 but you do need to start with a version of gradle.
 
-download gradle 7.4.2
-https://gradle.org/releases/
-
-Instructions for installation of gradle is available here:
-https://docs.gradle.org/current/userguide/installation.html
-
 Create runnable program:
 
+set JAVA_HOME=C:\jdk-18.0.2.1+1
 gradlew.bat clean jlink
 or 
+export JAVA_HOME=C:/jdk-18.0.2.1+1
 ./gradlew clean jlink
 
 Your output will be inside build/tmp and will contain the various 

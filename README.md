@@ -138,6 +138,14 @@ range so arrays larger then 65kb will not load.  There likely will be size limit
 
 ## Release History
 
+### Enhancements for 3.00
+
+Upgraded to FlatLaf 3.3 and Java 18 amd added better support for MacOS.
+
+### Bug fixes for 3.00
+
+MAC OSX 13.2 - Fatal error when accessing JComboBox
+
 ### Bug fixes for 2.03
 
 Added execute permissions to Java for Linux and MacOS.
